@@ -1,0 +1,10 @@
+struct PS_OUTPUT 
+{ 
+	float4 Color0:COLOR0;
+};
+PS_OUTPUT PSMain()
+{
+	 PS_OUTPUT Out = (PS_OUTPUT) 0;
+	Out.Color0 = float4(0.0f,0.0f,0.0f,1.0f);
+	return Out;
+};

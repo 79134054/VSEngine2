@@ -1,0 +1,95 @@
+cbuffer CB : register( b0 )
+{
+	row_major float4x4 ViewProjectMatrix;
+	float3 LightInfo;
+}
+struct GS_INPUT
+{
+    float3 WorldPos          : WPOS; 
+};
+struct GS_OUTPUT
+{
+    float4 Position			: SV_Position;
+};
+#define ExtrudeLength 5000.0f
+#define ExtrudeBais 0.0f
+#define ZBias -0.001f
+void DetectAndProcessSilhouette( GS_INPUT v1,    // Shared vertex
+                                 GS_INPUT v2,    // Shared vertex
+                                 inout TriangleStream<GS_OUTPUT> ShadowTriangleStream // triangle stream
+                                 )
+{    
+    
+    float3 outpos[4];
+#ifdef VolumeVertexFormat
+	float3 extrude1 = LightInfo;
+    float3 extrude2 = LightInfo;  
+#else   
+	float3 extrude1 = normalize(v1.WorldPos - LightInfo);
+    float3 extrude2 = normalize(v2.WorldPos - LightInfo);
+#endif      
+    outpos[0] = v1.WorldPos;
+    outpos[1] = v1.WorldPos + ExtrudeLength * extrude1;
+    outpos[2] = v2.WorldPos;
+    outpos[3] = v2.WorldPos + ExtrudeLength * extrude2;
+        
+    // Extrude silhouette to create two new triangles
+    GS_OUTPUT Out = (GS_OUTPUT)0;
+	[unroll]
+    for(int v=0; v<4; v++)
+    {
+        Out.Position = mul( float4(outpos[v],1), ViewProjectMatrix );
+		Out.Position.z -= ZBias; 
+        ShadowTriangleStream.Append( Out );
+    }
+    ShadowTriangleStream.RestartStrip();
+}
+
+
+[maxvertexcount(18)]
+void GSMain( triangle GS_INPUT In[3], inout TriangleStream<GS_OUTPUT> ShadowTriangleStream )
+{
+    // Compute un-normalized triangle normal
+    float3 N = cross( In[1].WorldPos - In[0].WorldPos, In[2].WorldPos - In[0].WorldPos );
+#ifdef VolumeVertexFormat   
+    float3 lightDir = -LightInfo;
+#else
+	float3 lightDir = LightInfo - In[0].WorldPos;
+#endif   
+    //if we're facing the light
+    if( dot(N, lightDir) > 0.0f )
+    {
+        // For each edge of the triangle, determine if it is a silhouette edge
+        DetectAndProcessSilhouette( In[0], In[1], ShadowTriangleStream );
+        DetectAndProcessSilhouette( In[1], In[2], ShadowTriangleStream );
+        DetectAndProcessSilhouette( In[2], In[0], ShadowTriangleStream );
+        
+        //near cap
+        GS_OUTPUT Out[6];
+		[unroll]
+        for(int v = 0; v < 3; v++)
+        {         
+#ifdef VolumeVertexFormat
+			float3 extrude = LightInfo;
+#else   
+			float3 extrude = normalize(In[v].WorldPos - LightInfo);		
+#endif  
+            float3 WorldPos = In[v].WorldPos;
+            Out[2 * v].Position = mul( float4(WorldPos,1), ViewProjectMatrix );
+			Out[2 * v].Position.z -= ZBias; 
+			WorldPos = In[v].WorldPos + ExtrudeLength * extrude;
+			Out[2 * v + 1].Position = mul( float4(WorldPos,1), ViewProjectMatrix );
+            Out[2 * v + 1].Position.z -= ZBias; 
+        }
+
+		ShadowTriangleStream.Append( Out[0] );
+		ShadowTriangleStream.Append( Out[2] );
+		ShadowTriangleStream.Append( Out[4] );
+        ShadowTriangleStream.RestartStrip();
+        
+        ShadowTriangleStream.Append( Out[5] );
+		ShadowTriangleStream.Append( Out[3] );
+		ShadowTriangleStream.Append( Out[1] );
+        ShadowTriangleStream.RestartStrip();
+    }
+}

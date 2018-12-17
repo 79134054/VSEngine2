@@ -1,0 +1,20 @@
+float PostInv_Width;
+float PostInv_Height;
+struct VS_INPUT 
+{ 
+	float3 Position:POSITION0;
+};
+struct VS_OUTPUT
+{
+float4 Pos: POSITION;
+float2 texCoord: TEXCOORD0;
+};
+VS_OUTPUT VSMain(VS_INPUT Input)
+{
+VS_OUTPUT Out;
+Out.Pos = float4(Input.Position.xy, 0, 1);
+
+Out.texCoord.x = 0.5 * (1 + Input.Position.x + PostInv_Width);
+Out.texCoord.y = 0.5 * (1 - Input.Position.y + PostInv_Height);
+return Out;
+}

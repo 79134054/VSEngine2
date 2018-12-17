@@ -1,0 +1,26 @@
+#include"Shader.txt"
+cbuffer CB : register( b0 )
+{
+row_major float4x4 ProjectShadowMatrix;
+row_major float4x4 WorldViewProjectMatrix;
+}
+struct VS_INPUT 
+{ 
+	float3 Position0:POSITION0;
+};
+struct VS_OUTPUT 
+{
+	float4 Position:SV_POSITION;
+	float4 ProjectPos:TEXCOORD0;
+};
+VS_OUTPUT VSMain( VS_INPUT Input)
+{
+	VS_OUTPUT Out = (VS_OUTPUT) 0; 
+	float3 Position;
+	Position = Input.Position0;
+	float4 WorldPosTemp = mul(float4(Position,1), ProjectShadowMatrix);
+	float3 WorldPos = WorldPosTemp.xyz / WorldPosTemp.w;
+	Out.Position = mul(float4(WorldPos,1), WorldViewProjectMatrix);
+	Out.ProjectPos = Out.Position;
+	return Out;
+};

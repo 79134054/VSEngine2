@@ -1,0 +1,514 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{829D848B-E7F3-47AB-B303-CAE1681DC9EA}</ProjectGuid>
+    <RootNamespace>VSGraphic</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>12.0.21005.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\Bin\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)_d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\Bin\</OutDir>
+    <IntDir>.\Release\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\VSCore\;..\VSSystem\;..\VSMath\;..\VSDataStruct\;..\SDK\NVCompress\Include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;VSGRAPHIC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <PrecompiledHeaderFile />
+      <PrecompiledHeaderOutputFile />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\Bin\VSSystem_d.lib;..\Bin\VSMath_d.lib;..\Bin\VSDataStruct_d.lib;..\SDK\NVCompress\Lib\nvtt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName).dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\VSSystem\;..\VSMath\;..\VSDataStruct\;..\SDK\NVCompress\Include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;VSGRAPHIC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\Bin\VSSystem.lib;..\Bin\VSMath.lib;..\Bin\VSDataStruct.lib;..\SDK\NVCompress\Lib\nvtt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName).dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="VSAdditiveBlend.cpp" />
+    <ClCompile Include="VSASYNLoader.cpp" />
+    <ClCompile Include="VSColorBuffer.cpp" />
+    <ClCompile Include="VSController.cpp" />
+    <ClCompile Include="VSCustomArchiveObject.cpp" />
+    <ClCompile Include="VSDShader.cpp" />
+    <ClCompile Include="VSEnumTrans.cpp" />
+    <ClCompile Include="VSGraphic.cpp" />
+    <ClCompile Include="VSGShader.cpp" />
+    <ClCompile Include="VSHShader.cpp" />
+    <ClCompile Include="VSMain.cpp" />
+    <ClCompile Include="VSMeshComponent.cpp" />
+    <ClCompile Include="VSMonitor.cpp" />
+    <ClCompile Include="VSMorphBlendFunction.cpp" />
+    <ClCompile Include="VSName.cpp" />
+    <ClCompile Include="VSNodeComponent.cpp" />
+    <ClCompile Include="VSNullRenderer.cpp" />
+    <ClCompile Include="VSNVCompression.cpp" />
+    <ClCompile Include="VSObject.cpp" />
+    <ClCompile Include="VSOneParamImmediateAnimBlend.cpp" />
+    <ClCompile Include="VSOneParamMorphBlend.cpp" />
+    <ClCompile Include="VSOneParamSmoothAnimBlend.cpp" />
+    <ClCompile Include="VSOneParamSmoothAnimBlendSequence.cpp" />
+    <ClCompile Include="VSOneParamSmoothMorphBlend.cpp" />
+    <ClCompile Include="VSPEMaterial.cpp" />
+    <ClCompile Include="VSPostEffectPass.cpp" />
+    <ClCompile Include="VSPostEffectShaderFunction.cpp" />
+    <ClCompile Include="VSPriority.cpp" />
+    <ClCompile Include="VSProfiler.cpp" />
+    <ClCompile Include="VSPutNode.cpp" />
+    <ClCompile Include="VSReference.cpp" />
+    <ClCompile Include="VSReflectCameraActor.cpp" />
+    <ClCompile Include="VSResource.cpp" />
+    <ClCompile Include="VSResourceManager.cpp" />
+    <ClCompile Include="VSRtti.cpp" />
+    <ClCompile Include="VSSkelectonMeshComponent.cpp" />
+    <ClCompile Include="VSSocketNode.cpp" />
+    <ClCompile Include="VSStaticMeshComponent.cpp" />
+    <ClCompile Include="VSStream.cpp" />
+    <ClCompile Include="VSTexCoord.cpp" />
+    <ClCompile Include="VSTimeEvent.cpp" />
+    <ClCompile Include="VSTransform.cpp" />
+    <ClCompile Include="VSTwoParamAnimBlendSequence.cpp" />
+    <ClCompile Include="VSUseBuffer.cpp" />
+    <ClCompile Include="VSVariant.cpp" />
+    <ClCompile Include="VS1DTexSampler.cpp" />
+    <ClCompile Include="VS2DTexSampler.cpp" />
+    <ClCompile Include="VSAnisotropicWardShaderFunction.cpp" />
+    <ClCompile Include="VSArithmeticShaderFunction.cpp" />
+    <ClCompile Include="VSCameraShaderFunction.cpp" />
+    <ClCompile Include="VSConstFloatValue.cpp" />
+    <ClCompile Include="VSConstValue.cpp" />
+    <ClCompile Include="VSCookTorranceShaderFunction.cpp" />
+    <ClCompile Include="VSCustomShaderFunction.cpp" />
+    <ClCompile Include="VSIsotropicWardShaderFunction.cpp" />
+    <ClCompile Include="VSLightShaderFunction.cpp" />
+    <ClCompile Include="VSMaterial.cpp" />
+    <ClCompile Include="VSMinnaertShaderFunction.cpp" />
+    <ClCompile Include="VSNormalFunction.cpp" />
+    <ClCompile Include="VSOrenNayarShaderFunction.cpp" />
+    <ClCompile Include="VSPhoneShaderFunction.cpp" />
+    <ClCompile Include="VSPosShaderFunction.cpp" />
+    <ClCompile Include="VSSchlickShaderFunction.cpp" />
+    <ClCompile Include="VSShaderFunction.cpp" />
+    <ClCompile Include="VSShaderMainFunction.cpp" />
+    <ClCompile Include="VSShirleyShaderFunction.cpp" />
+    <ClCompile Include="VSStraussShaderFunction.cpp" />
+    <ClCompile Include="VSTexSampler.cpp" />
+    <ClCompile Include="VSVertexColor.cpp" />
+    <ClCompile Include="VS1DTexture.cpp" />
+    <ClCompile Include="VS2DTexture.cpp" />
+    <ClCompile Include="VS3DTexture.cpp" />
+    <ClCompile Include="VSCaptureTexAllState.cpp" />
+    <ClCompile Include="VSCubeTexture.cpp" />
+    <ClCompile Include="VSTexAllState.cpp" />
+    <ClCompile Include="VSTexture.cpp" />
+    <ClCompile Include="VSAnimAtom.cpp" />
+    <ClCompile Include="VSAnimBaseFunction.cpp" />
+    <ClCompile Include="VSAnimBlendFunction.cpp" />
+    <ClCompile Include="VSAnimFunction.cpp" />
+    <ClCompile Include="VSAnimMainFunction.cpp" />
+    <ClCompile Include="VSAnimSequenceFunc.cpp" />
+    <ClCompile Include="VSAnimSet.cpp" />
+    <ClCompile Include="VSAnimTree.cpp" />
+    <ClCompile Include="VSMorphBaseFunction.cpp" />
+    <ClCompile Include="VSMorphFunction.cpp" />
+    <ClCompile Include="VSMorphMainFunction.cpp" />
+    <ClCompile Include="VSMorphSequenceFunc.cpp" />
+    <ClCompile Include="VSMorphSet.cpp" />
+    <ClCompile Include="VSMorphTree.cpp" />
+    <ClCompile Include="VSOneParamAnimBlend.cpp" />
+    <ClCompile Include="VSPartialAnimBlend.cpp" />
+    <ClCompile Include="VSRectAnimBlend.cpp" />
+    <ClCompile Include="VSTwoParamAnimBlend.cpp" />
+    <ClCompile Include="VSPShader.cpp" />
+    <ClCompile Include="VSShader.cpp" />
+    <ClCompile Include="VSShaderKey.cpp" />
+    <ClCompile Include="VSShaderMap.cpp" />
+    <ClCompile Include="VSShaderStringFactory.cpp" />
+    <ClCompile Include="VSUserConstant.cpp" />
+    <ClCompile Include="VSUserSampler.cpp" />
+    <ClCompile Include="VSVShader.cpp" />
+    <ClCompile Include="VSPEBeginFunction.cpp" />
+    <ClCompile Include="VSPEEndFunction.cpp" />
+    <ClCompile Include="VSPEGray.cpp" />
+    <ClCompile Include="VSPostEffectFunction.cpp" />
+    <ClCompile Include="VSPostEffectSet.cpp" />
+    <ClCompile Include="VSBind.cpp" />
+    <ClCompile Include="VSCuller.cpp" />
+    <ClCompile Include="VSDebugDraw.cpp" />
+    <ClCompile Include="VSDepthStencil.cpp" />
+    <ClCompile Include="VSFont.cpp" />
+    <ClCompile Include="VSRenderer.cpp" />
+    <ClCompile Include="VSRenderTarget.cpp" />
+    <ClCompile Include="VSScene.cpp" />
+    <ClCompile Include="VSSceneManager.cpp" />
+    <ClCompile Include="VSSceneRender.cpp" />
+    <ClCompile Include="VSViewFamily.cpp" />
+    <ClCompile Include="VS1stCameraController.cpp" />
+    <ClCompile Include="VSCamera.cpp" />
+    <ClCompile Include="VSFreeCameraController.cpp" />
+    <ClCompile Include="VSBoneNode.cpp" />
+    <ClCompile Include="VSCLodTerrainNode.cpp" />
+    <ClCompile Include="VSDLodTerrainNode.cpp" />
+    <ClCompile Include="VSDLodTerrainSwitchNode.cpp" />
+    <ClCompile Include="VSGeometryNode.cpp" />
+    <ClCompile Include="VSMeshNode.cpp" />
+    <ClCompile Include="VSModelMeshNode.cpp" />
+    <ClCompile Include="VSModelSwitchNode.cpp" />
+    <ClCompile Include="VSNode.cpp" />
+    <ClCompile Include="VSSkelecton.cpp" />
+    <ClCompile Include="VSSkelectonMeshNode.cpp" />
+    <ClCompile Include="VSSpatial.cpp" />
+    <ClCompile Include="VSStaticMeshNode.cpp" />
+    <ClCompile Include="VSSwitchNode.cpp" />
+    <ClCompile Include="VSTerrainNode.cpp" />
+    <ClCompile Include="VSCLodTerrainGeometry.cpp" />
+    <ClCompile Include="VSCollapseRecord.cpp" />
+    <ClCompile Include="VSCreateClodFactory.cpp" />
+    <ClCompile Include="VSDLodTerrainGeometry.cpp" />
+    <ClCompile Include="VSDynamicBufferGeometry.cpp" />
+    <ClCompile Include="VSGeometry.cpp" />
+    <ClCompile Include="VSQuadTerrainGeometry.cpp" />
+    <ClCompile Include="VSRoamTerrainGemotry.cpp" />
+    <ClCompile Include="VSDataBuffer.cpp" />
+    <ClCompile Include="VSIndexBuffer.cpp" />
+    <ClCompile Include="VSLineSet.cpp" />
+    <ClCompile Include="VSMeshDate.cpp" />
+    <ClCompile Include="VSOrdinaryLineSet.cpp" />
+    <ClCompile Include="VSOrdinaryTriangleSet.cpp" />
+    <ClCompile Include="VSPointSet.cpp" />
+    <ClCompile Include="VSTriangleSet.cpp" />
+    <ClCompile Include="VSVertexBuffer.cpp" />
+    <ClCompile Include="VSVertexFormat.cpp" />
+    <ClCompile Include="VSDirectionLight.cpp" />
+    <ClCompile Include="VSLight.cpp" />
+    <ClCompile Include="VSPointLight.cpp" />
+    <ClCompile Include="VSSkyLight.cpp" />
+    <ClCompile Include="VSSpotLight.cpp" />
+    <ClCompile Include="VSBlendState.cpp" />
+    <ClCompile Include="VSDepthStencilState.cpp" />
+    <ClCompile Include="VSRasterizerState.cpp" />
+    <ClCompile Include="VSRenderState.cpp" />
+    <ClCompile Include="VSSamplerState.cpp" />
+    <ClCompile Include="VSIndirectRenderPass.cpp" />
+    <ClCompile Include="VSLightFunPass.cpp" />
+    <ClCompile Include="VSMaterialPass.cpp" />
+    <ClCompile Include="VSNormalDepthPass.cpp" />
+    <ClCompile Include="VSPass.cpp" />
+    <ClCompile Include="VSPrezPass.cpp" />
+    <ClCompile Include="VSShadowPass.cpp" />
+    <ClCompile Include="VSActor.cpp" />
+    <ClCompile Include="VSCameraActor.cpp" />
+    <ClCompile Include="VSLightActor.cpp" />
+    <ClCompile Include="VSSceneMap.cpp" />
+    <ClCompile Include="VSSkelectonActor.cpp" />
+    <ClCompile Include="VSStaticActor.cpp" />
+    <ClCompile Include="VSTerrainActor.cpp" />
+    <ClCompile Include="VSWorld.cpp" />
+    <ClCompile Include="VSAIState.cpp" />
+    <ClCompile Include="VSSteer.cpp" />
+    <ClCompile Include="VSEngineThread.cpp" />
+    <ClCompile Include="VSRenderThread.cpp" />
+    <ClCompile Include="VSUpdateThread.cpp" />
+    <ClCompile Include="VSEditorProperty.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="VSAdditiveBlend.h" />
+    <ClInclude Include="VSColorBuffer.h" />
+    <ClInclude Include="VSDShader.h" />
+    <ClInclude Include="VSGShader.h" />
+    <ClInclude Include="VSHShader.h" />
+    <ClInclude Include="VSMorphBlendFunction.h" />
+    <ClInclude Include="VSNullRenderer.h" />
+    <ClInclude Include="VSASYNLoader.h" />
+    <ClInclude Include="VSController.h" />
+    <ClInclude Include="VSCustomArchiveObject.h" />
+    <ClInclude Include="VSEnumTrans.h" />
+    <ClInclude Include="VSGraphic.h" />
+    <ClInclude Include="VSGraphicInclude.h" />
+    <ClInclude Include="VSLogic.h" />
+    <ClInclude Include="VSMain.h" />
+    <ClInclude Include="VSMeshComponent.h" />
+    <ClInclude Include="VSMonitor.h" />
+    <ClInclude Include="VSName.h" />
+    <ClInclude Include="VSNodeComponent.h" />
+    <ClInclude Include="VSNVCompression.h" />
+    <ClInclude Include="VSObject.h" />
+    <ClInclude Include="VSOneParamImmediateAnimBlend.h" />
+    <ClInclude Include="VSOneParamMorphBlend.h" />
+    <ClInclude Include="VSOneParamSmoothAnimBlend.h" />
+    <ClInclude Include="VSOneParamSmoothAnimBlendSequence.h" />
+    <ClInclude Include="VSOneParamSmoothMorphBlend.h" />
+    <ClInclude Include="VSPointer.h" />
+    <ClInclude Include="VSPostEffectPass.h" />
+    <ClInclude Include="VSPostEffectShaderFunction.h" />
+    <ClInclude Include="VSPriority.h" />
+    <ClInclude Include="VSProfiler.h" />
+    <ClInclude Include="VSProperty.h" />
+    <ClInclude Include="VSPutNode.h" />
+    <ClInclude Include="VSReference.h" />
+    <ClInclude Include="VSReflectCameraActor.h" />
+    <ClInclude Include="VSResource.h" />
+    <ClInclude Include="VSResourceManager.h" />
+    <ClInclude Include="VSRtti.h" />
+    <ClInclude Include="VSSkelectonMeshComponent.h" />
+    <ClInclude Include="VSSocketNode.h" />
+    <ClInclude Include="VSStaticMeshComponent.h" />
+    <ClInclude Include="VSStream.h" />
+    <ClInclude Include="VSTexCoord.h" />
+    <ClInclude Include="VSTimeEvent.h" />
+    <ClInclude Include="VSTransform.h" />
+    <ClInclude Include="VSTwoParamAnimBlendSequence.h" />
+    <ClInclude Include="VSType.h" />
+    <ClInclude Include="VSUseBuffer.h" />
+    <ClInclude Include="VSVariant.h" />
+    <ClInclude Include="VS1DTexSampler.h" />
+    <ClInclude Include="VS2DTexSampler.h" />
+    <ClInclude Include="VSAnisotropicWardShaderFunction.h" />
+    <ClInclude Include="VSArithmeticShaderFunction.h" />
+    <ClInclude Include="VSCameraShaderFunction.h" />
+    <ClInclude Include="VSConstFloatValue.h" />
+    <ClInclude Include="VSConstValue.h" />
+    <ClInclude Include="VSCookTorranceShaderFunction.h" />
+    <ClInclude Include="VSCustomShaderFunction.h" />
+    <ClInclude Include="VSIsotropicWardShaderFunction.h" />
+    <ClInclude Include="VSLightShaderFunction.h" />
+    <ClInclude Include="VSMaterial.h" />
+    <ClInclude Include="VSMinnaertShaderFunction.h" />
+    <ClInclude Include="VSNormalFunction.h" />
+    <ClInclude Include="VSOrenNayarShaderFunction.h" />
+    <ClInclude Include="VSPhoneShaderFunction.h" />
+    <ClInclude Include="VSPosShaderFunction.h" />
+    <ClInclude Include="VSSchlickShaderFunction.h" />
+    <ClInclude Include="VSShaderFunction.h" />
+    <ClInclude Include="VSShaderMainFunction.h" />
+    <ClInclude Include="VSShirleyShaderFunction.h" />
+    <ClInclude Include="VSStraussShaderFunction.h" />
+    <ClInclude Include="VSTexSampler.h" />
+    <ClInclude Include="VSVertexColor.h" />
+    <ClInclude Include="VS1DTexture.h" />
+    <ClInclude Include="VS2DTexture.h" />
+    <ClInclude Include="VS3DTexture.h" />
+    <ClInclude Include="VSCaptureTexAllState.h" />
+    <ClInclude Include="VSCubeTexture.h" />
+    <ClInclude Include="VSTexAllState.h" />
+    <ClInclude Include="VSTexture.h" />
+    <ClInclude Include="VSAnimAtom.h" />
+    <ClInclude Include="VSAnimBaseFunction.h" />
+    <ClInclude Include="VSAnimBlendFunction.h" />
+    <ClInclude Include="VSAnimFunction.h" />
+    <ClInclude Include="VSAnimMainFunction.h" />
+    <ClInclude Include="VSAnimSequenceFunc.h" />
+    <ClInclude Include="VSAnimSet.h" />
+    <ClInclude Include="VSAnimTree.h" />
+    <ClInclude Include="VSMorphBaseFunction.h" />
+    <ClInclude Include="VSMorphFunction.h" />
+    <ClInclude Include="VSMorphMainFunction.h" />
+    <ClInclude Include="VSMorphSequenceFunc.h" />
+    <ClInclude Include="VSMorphSet.h" />
+    <ClInclude Include="VSMorphTree.h" />
+    <ClInclude Include="VSOneParamAnimBlend.h" />
+    <ClInclude Include="VSPartialAnimBlend.h" />
+    <ClInclude Include="VSRectAnimBlend.h" />
+    <ClInclude Include="VSTwoParamAnimBlend.h" />
+    <ClInclude Include="VSPShader.h" />
+    <ClInclude Include="VSShader.h" />
+    <ClInclude Include="VSShaderKey.h" />
+    <ClInclude Include="VSShaderMap.h" />
+    <ClInclude Include="VSShaderStringFactory.h" />
+    <ClInclude Include="VSUserConstant.h" />
+    <ClInclude Include="VSUserSampler.h" />
+    <ClInclude Include="VSVShader.h" />
+    <ClInclude Include="VSPEBeginFunction.h" />
+    <ClInclude Include="VSPEBlur.h" />
+    <ClInclude Include="VSPEEndFunction.h" />
+    <ClInclude Include="VSPEGray.h" />
+    <ClInclude Include="VSPEMaterial.h" />
+    <ClInclude Include="VSPostEffectFunction.h" />
+    <ClInclude Include="VSPostEffectSet.h" />
+    <ClInclude Include="VSBind.h" />
+    <ClInclude Include="VSCuller.h" />
+    <ClInclude Include="VSDebugDraw.h" />
+    <ClInclude Include="VSDepthStencil.h" />
+    <ClInclude Include="VSFont.h" />
+    <ClInclude Include="VSRenderer.h" />
+    <ClInclude Include="VSRenderTarget.h" />
+    <ClInclude Include="VSScene.h" />
+    <ClInclude Include="VSSceneManager.h" />
+    <ClInclude Include="VSSceneRender.h" />
+    <ClInclude Include="VSViewFamily.h" />
+    <ClInclude Include="VS1stCameraController.h" />
+    <ClInclude Include="VSCamera.h" />
+    <ClInclude Include="VSFreeCameraController.h" />
+    <ClInclude Include="VSBoneNode.h" />
+    <ClInclude Include="VSCLodTerrainNode.h" />
+    <ClInclude Include="VSDLodTerrainNode.h" />
+    <ClInclude Include="VSDLodTerrainSwitchNode.h" />
+    <ClInclude Include="VSGeometryNode.h" />
+    <ClInclude Include="VSMeshNode.h" />
+    <ClInclude Include="VSModelMeshNode.h" />
+    <ClInclude Include="VSModelSwitchNode.h" />
+    <ClInclude Include="VSNode.h" />
+    <ClInclude Include="VSSkelecton.h" />
+    <ClInclude Include="VSSkelectonMeshNode.h" />
+    <ClInclude Include="VSSpatial.h" />
+    <ClInclude Include="VSStaticMeshNode.h" />
+    <ClInclude Include="VSSwitchNode.h" />
+    <ClInclude Include="VSTerrainNode.h" />
+    <ClInclude Include="VSCLodTerrainGeometry.h" />
+    <ClInclude Include="VSCollapseRecord.h" />
+    <ClInclude Include="VSCreateClodFactory.h" />
+    <ClInclude Include="VSDLodTerrainGeometry.h" />
+    <ClInclude Include="VSDynamicBufferGeometry.h" />
+    <ClInclude Include="VSGeometry.h" />
+    <ClInclude Include="VSQuadTerrainGeometry.h" />
+    <ClInclude Include="VSRoamTerrainGemotry.h" />
+    <ClInclude Include="VSDataBuffer.h" />
+    <ClInclude Include="VSIndexBuffer.h" />
+    <ClInclude Include="VSLineSet.h" />
+    <ClInclude Include="VSMeshDate.h" />
+    <ClInclude Include="VSOrdinaryLineSet.h" />
+    <ClInclude Include="VSOrdinaryTriangleSet.h" />
+    <ClInclude Include="VSPointSet.h" />
+    <ClInclude Include="VSTriangleSet.h" />
+    <ClInclude Include="VSVertexBuffer.h" />
+    <ClInclude Include="VSVertexFormat.h" />
+    <ClInclude Include="VSDirectionLight.h" />
+    <ClInclude Include="VSLight.h" />
+    <ClInclude Include="VSPointLight.h" />
+    <ClInclude Include="VSSkyLight.h" />
+    <ClInclude Include="VSSortLight.h" />
+    <ClInclude Include="VSSpotLight.h" />
+    <ClInclude Include="VSBlendState.h" />
+    <ClInclude Include="VSDepthStencilState.h" />
+    <ClInclude Include="VSRasterizerState.h" />
+    <ClInclude Include="VSRenderState.h" />
+    <ClInclude Include="VSSamplerState.h" />
+    <ClInclude Include="VSIndirectRenderPass.h" />
+    <ClInclude Include="VSLightFunPass.h" />
+    <ClInclude Include="VSMaterialPass.h" />
+    <ClInclude Include="VSNormalDepthPass.h" />
+    <ClInclude Include="VSPass.h" />
+    <ClInclude Include="VSPrezPass.h" />
+    <ClInclude Include="VSShadowPass.h" />
+    <ClInclude Include="VSActor.h" />
+    <ClInclude Include="VSCameraActor.h" />
+    <ClInclude Include="VSLightActor.h" />
+    <ClInclude Include="VSSceneMap.h" />
+    <ClInclude Include="VSSkelectonActor.h" />
+    <ClInclude Include="VSStaticActor.h" />
+    <ClInclude Include="VSTerrainActor.h" />
+    <ClInclude Include="VSWorld.h" />
+    <ClInclude Include="VSAIState.h" />
+    <ClInclude Include="VSSteer.h" />
+    <ClInclude Include="VSEngineThread.h" />
+    <ClInclude Include="VSRenderThread.h" />
+    <ClInclude Include="VSUpdateThread.h" />
+    <ClInclude Include="VSEditorProperty.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="VSController.inl" />
+    <None Include="VSInitial.marc" />
+    <None Include="VSPointer.inl" />
+    <None Include="VSPriority.marc" />
+    <None Include="VSProperty.marc" />
+    <None Include="VSRtti.inl" />
+    <None Include="VSRtti.marc" />
+    <None Include="VSTransform.inl" />
+    <None Include="VSTexture.inl" />
+    <None Include="VSUserConstant.inl" />
+    <None Include="VSCuller.inl" />
+    <None Include="VSRenderer.inl" />
+    <None Include="VSCamera.inl" />
+    <None Include="VSNode.inl" />
+    <None Include="VSMeshDate.inl" />
+    <None Include="VSVertexBuffer.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VSDataStruct\VSDataStruct.vcxproj">
+      <Project>{2b36903f-5834-494f-afb8-7808e42f7412}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\VSMath\VSMath.vcxproj">
+      <Project>{af708bc9-6c62-4fbc-8dfd-51036decbbc2}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\VSSystem\VSSystem.vcxproj">
+      <Project>{ee45b131-9f26-42aa-b238-3e3663cf3ea8}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,260 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{AF708BC9-6C62-4FBC-8DFD-51036DECBBC2}</ProjectGuid>
+    <RootNamespace>VSMath</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>12.0.21005.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\Bin\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)_d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\Bin\</OutDir>
+    <IntDir>.\Release\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\VSSystem\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;VSMATH_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\Bin\VSSystem_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName).dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+      <ProgramDatabaseFile>$(OutDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ImportLibrary>$(OutDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\VSSystem\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;VSMATH_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\Bin\VSSystem.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName).dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="VSAABB3.cpp" />
+    <ClCompile Include="VSAABB3Distance.cpp" />
+    <ClCompile Include="VSAABB3RelationWith.cpp" />
+    <ClCompile Include="VSB_SplineCurve3.cpp" />
+    <ClCompile Include="VSB_SplineSurface3.cpp" />
+    <ClCompile Include="VSBezierCurve3.cpp" />
+    <ClCompile Include="VSBezierSurface3.cpp" />
+    <ClCompile Include="VSControlCurve3.cpp" />
+    <ClCompile Include="VSControlSurface3.cpp" />
+    <ClCompile Include="VSCurve3.cpp" />
+    <ClCompile Include="VSCurve3SubdivisionByError.cpp" />
+    <ClCompile Include="VSCurve3SubdivisionByLength.cpp" />
+    <ClCompile Include="VSCurve3SubdivisionByUniform.cpp" />
+    <ClCompile Include="VSCurve3Subdivsion.cpp" />
+    <ClCompile Include="VSCurveLengthFunction1.cpp" />
+    <ClCompile Include="VSCurveSet3.cpp" />
+    <ClCompile Include="VSCylinder3.cpp" />
+    <ClCompile Include="VSCylinderSurface.cpp" />
+    <ClCompile Include="VSDiffEquation.cpp" />
+    <ClCompile Include="VSFastFunction.cpp" />
+    <ClCompile Include="VSFunction1.cpp" />
+    <ClCompile Include="VSGeneralizedCylinderSurface3.cpp" />
+    <ClCompile Include="VSLine3.cpp" />
+    <ClCompile Include="VSLine3Distance.cpp" />
+    <ClCompile Include="VSLine3RelationWith.cpp" />
+    <ClCompile Include="VSMath.cpp" />
+    <ClCompile Include="VSMatrix3X3.cpp" />
+    <ClCompile Include="VSMatrix3X3W.cpp" />
+    <ClCompile Include="VSNURBSCurve3.cpp" />
+    <ClCompile Include="VSNURBSSurface3.cpp" />
+    <ClCompile Include="VSOBB3.cpp" />
+    <ClCompile Include="VSOBB3Distance.cpp" />
+    <ClCompile Include="VSOBB3RelationWith.cpp" />
+    <ClCompile Include="VSOtherMath.cpp" />
+    <ClCompile Include="VSPlane3.cpp" />
+    <ClCompile Include="VSPlane3Distance.cpp" />
+    <ClCompile Include="VSPlane3RelationWith.cpp" />
+    <ClCompile Include="VSPolygon3.cpp" />
+    <ClCompile Include="VSPolygon3Clip.cpp" />
+    <ClCompile Include="VSPolygon3Distance.cpp" />
+    <ClCompile Include="VSPolygon3RelationWith.cpp" />
+    <ClCompile Include="VSQuat.cpp" />
+    <ClCompile Include="VSRay3.cpp" />
+    <ClCompile Include="VSRay3Distance.cpp" />
+    <ClCompile Include="VSRay3RelationWith.cpp" />
+    <ClCompile Include="VSRect2.cpp" />
+    <ClCompile Include="VSRectangle3.cpp" />
+    <ClCompile Include="VSRectangle3Distance.cpp" />
+    <ClCompile Include="VSRectangle3RelationWith.cpp" />
+    <ClCompile Include="VSRevolutionSurface3.cpp" />
+    <ClCompile Include="VSSegment3.cpp" />
+    <ClCompile Include="VSSegment3Distance.cpp" />
+    <ClCompile Include="VSSegment3RelationWith.cpp" />
+    <ClCompile Include="VSSegmentCurve3.cpp" />
+    <ClCompile Include="VSSphere3.cpp" />
+    <ClCompile Include="VSSphere3Distance.cpp" />
+    <ClCompile Include="VSSphere3RelationWith.cpp" />
+    <ClCompile Include="VSSurface3.cpp" />
+    <ClCompile Include="VSSurface3Subdivision.cpp" />
+    <ClCompile Include="VSSurface3SubdivisionByLength.cpp" />
+    <ClCompile Include="VSSurface3SubdivisionByUniform.cpp" />
+    <ClCompile Include="VSSurfaceLengthFunction1.cpp" />
+    <ClCompile Include="VSTriangle3.cpp" />
+    <ClCompile Include="VSTriangle3Distance.cpp" />
+    <ClCompile Include="VSTriangle3RelationWith.cpp" />
+    <ClCompile Include="VSTubeSurface3.cpp" />
+    <ClCompile Include="VSVector2.cpp" />
+    <ClCompile Include="VSVector3.cpp" />
+    <ClCompile Include="VSVector3Distance.cpp" />
+    <ClCompile Include="VSVector3RelationWith.cpp" />
+    <ClCompile Include="VSVector3W.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Function1.inl" />
+    <None Include="VSAABB3.inl" />
+    <None Include="VSB_SplineCurve3.inl" />
+    <None Include="VSB_SplineSurface3.inl" />
+    <None Include="VSBezierCurve3.inl" />
+    <None Include="VSBezierSurface3.inl" />
+    <None Include="VSControlCurve3.inl" />
+    <None Include="VSControlSurface3.inl" />
+    <None Include="VSCurve3Subdivision.inl" />
+    <None Include="VSLine3.inl" />
+    <None Include="VSMatrix3X3.inl" />
+    <None Include="VSMatrix3X3W.inl" />
+    <None Include="VSNURBSCurve3.inl" />
+    <None Include="VSNURBSSurface3.inl" />
+    <None Include="VSOBB3.inl" />
+    <None Include="VSPlane3.inl" />
+    <None Include="VSPolygon3.inl" />
+    <None Include="VSRay3.inl" />
+    <None Include="VSRectangle3.inl" />
+    <None Include="VSSegment3.inl" />
+    <None Include="VSSegmentCurve3.inl" />
+    <None Include="VSSphere3.inl" />
+    <None Include="VSSurface3.inl" />
+    <None Include="VSSurface3Subdivision.inl" />
+    <None Include="VSTriangle3.inl" />
+    <None Include="VSVector2.inl" />
+    <None Include="VSVector3.inl" />
+    <None Include="VSVector3W.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="VSAABB3.h" />
+    <ClInclude Include="VSB_SplineCurve3.h" />
+    <ClInclude Include="VSB_SplineSurface3.h" />
+    <ClInclude Include="VSBezierCurve3.h" />
+    <ClInclude Include="VSBezierSurface3.h" />
+    <ClInclude Include="VSControlCurve3.h" />
+    <ClInclude Include="VSControlSurface3.h" />
+    <ClInclude Include="VSCurve3.h" />
+    <ClInclude Include="VSCurve3Subdivision.h" />
+    <ClInclude Include="VSCurve3SubdivisionByError.h" />
+    <ClInclude Include="VSCurve3SubdivisionByLength.h" />
+    <ClInclude Include="VSCurve3SubdivisionByUniform.h" />
+    <ClInclude Include="VSCurveLengthFunction1.h" />
+    <ClInclude Include="VSCurveSet3.h" />
+    <ClInclude Include="VSCylinder3.h" />
+    <ClInclude Include="VSCylinderSurface3.h" />
+    <ClInclude Include="VSDiffEquation.h" />
+    <ClInclude Include="VSFastFunction.h" />
+    <ClInclude Include="VSFunction1.h" />
+    <ClInclude Include="VSGeneralizedCylinderSurface3.h" />
+    <ClInclude Include="VSLine3.h" />
+    <ClInclude Include="VSMath.h" />
+    <ClInclude Include="VSMatrix3X3.h" />
+    <ClInclude Include="VSMatrix3X3W.h" />
+    <ClInclude Include="VSNURBSCurve3.h" />
+    <ClInclude Include="VSNURBSSurface3.h" />
+    <ClInclude Include="VSOBB3.h" />
+    <ClInclude Include="VSOtherMath.h" />
+    <ClInclude Include="VSPlane3.h" />
+    <ClInclude Include="VSPolygon3.h" />
+    <ClInclude Include="VSQuat.h" />
+    <ClInclude Include="VSRay3.h" />
+    <ClInclude Include="VSRect2.h" />
+    <ClInclude Include="VSRectangle3.h" />
+    <ClInclude Include="VSRevolutionSurface3.h" />
+    <ClInclude Include="VSSegment3.h" />
+    <ClInclude Include="VSSegmentCurve3.h" />
+    <ClInclude Include="VSSphere3.h" />
+    <ClInclude Include="VSSurface3.h" />
+    <ClInclude Include="VSSurface3Subdivision.h" />
+    <ClInclude Include="VSSurface3SubdivisionByLength.h" />
+    <ClInclude Include="VSSurface3SubdivisionByUniform.h" />
+    <ClInclude Include="VSSurfaceLengthFunction1.h" />
+    <ClInclude Include="VSTriangle3.h" />
+    <ClInclude Include="VSTubeSurface3.h" />
+    <ClInclude Include="VSVector2.h" />
+    <ClInclude Include="VSVector3.h" />
+    <ClInclude Include="VSVector3W.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VSSystem\VSSystem.vcxproj">
+      <Project>{ee45b131-9f26-42aa-b238-3e3663cf3ea8}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

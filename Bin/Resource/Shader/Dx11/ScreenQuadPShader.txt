@@ -1,0 +1,13 @@
+Texture2D PostInputTexture;
+SamplerState PostInputSampler;
+struct PS_INPUT
+{
+float4 Pos: SV_POSITION;
+float2 texCoord: TEXCOORD0;
+};
+float4 PSMain(PS_INPUT Input) : SV_Target0
+{
+// Read the source color
+float4 col = PostInputTexture.Sample( PostInputSampler, Input.texCoord);
+return col;
+}

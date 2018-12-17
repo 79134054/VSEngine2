@@ -1,0 +1,14 @@
+struct PS_OUTPUT 
+{ 
+	float4 Color0:SV_Target0;
+};
+struct PS_INPUT
+{
+float4 Pos: SV_POSITION;
+};
+PS_OUTPUT PSMain(PS_INPUT Input)
+{
+	 PS_OUTPUT Out = (PS_OUTPUT) 0;
+	Out.Color0 = float4(0.0f,0.0f,0.0f,1.0f);
+	return Out;
+};
