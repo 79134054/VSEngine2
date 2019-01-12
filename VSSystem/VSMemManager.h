@@ -6,7 +6,7 @@
 #include <new.h>
 #define VS_NEW new
 #define VS_DELETE delete
-#define USE_STL_TYPE_TRAIT
+//#define USE_STL_TYPE_TRAIT
 #ifdef USE_STL_TYPE_TRAIT
 	#include <type_traits>
 #endif // USE_STL_TYPE_TRAIT
