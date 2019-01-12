@@ -180,7 +180,7 @@ void VSGraph::DeleteEdge(VSGraphNode * pFrom,VSGraphNode * pTo)
 	}
 	VSMAC_ASSERT(pEdge);
 
-	VSGraphNode * pFrom = (VSGraphNode *)pEdge->GetFrom();
+	pFrom = (VSGraphNode *)pEdge->GetFrom();
 	VSList<VSGraphEdge *> &s = pFrom->GetEdge();
 	s.Erase(pEdge);
 	if (m_bIsDig)

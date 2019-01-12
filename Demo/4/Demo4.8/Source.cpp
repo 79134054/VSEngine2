@@ -16,7 +16,7 @@ int sss(int a, int b)
 	std::cout << "i am sss" << std::endl;
 	return 1;
 }
-int fff(int a, int b,int c)
+int fff(int a, int b, int c)
 {
 	std::cout << "i am fff" << std::endl;
 	return 1;
@@ -29,7 +29,7 @@ public:
 		std::cout << "i am LL" << std::endl;
 		return 1;
 	}
-	int LLL(int a, int b,int c)
+	int LLL(int a, int b, int c)
 	{
 		std::cout << "i am LLL" << std::endl;
 		return 1;
