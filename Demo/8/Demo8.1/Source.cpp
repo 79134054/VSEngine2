@@ -14,12 +14,12 @@ private:
 
 A::A()
 {
-
+	VSOutPutDebugString("constructed\n");
 }
 
 A::~A()
 {
-
+	VSOutPutDebugString("destoried\n");
 }
 void main()
 {

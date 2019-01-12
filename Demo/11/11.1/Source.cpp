@@ -47,7 +47,7 @@ protected:
 	int		m_iLastMouseY;
 	enum 
 	{
-		RENDER_NUM = 20
+		RENDER_NUM = 10
 	};
 };
 IMPLEMENT_APPLICATION(VSDemoWindowsApplication);
