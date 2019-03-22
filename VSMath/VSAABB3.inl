@@ -11,9 +11,9 @@ FORCEINLINE void VSAABB3::Set(const VSVector3 & Max , const VSVector3 & Min)
 /*----------------------------------------------------------------*/
 FORCEINLINE void VSAABB3::Set(const VSVector3 & Center,VSREAL fA0,VSREAL fA1,VSREAL fA2)
 {
-	m_fA[0] = abs(fA0);
-	m_fA[1] = abs(fA1);
-	m_fA[2] = abs(fA2);
+	m_fA[0] = ABS(fA0);
+	m_fA[1] = ABS(fA1);
+	m_fA[2] = ABS(fA2);
 	
 	m_Center = Center;
 	
@@ -23,9 +23,9 @@ FORCEINLINE void VSAABB3::Set(const VSVector3 & Center,VSREAL fA0,VSREAL fA1,VSR
 /*----------------------------------------------------------------*/
 FORCEINLINE void VSAABB3::Set(const VSVector3 & Center,VSREAL fA[3])
 {
-	m_fA[0] = abs(fA[0]);
-	m_fA[1] = abs(fA[1]);
-	m_fA[2] = abs(fA[2]);
+	m_fA[0] = ABS(fA[0]);
+	m_fA[1] = ABS(fA[1]);
+	m_fA[2] = ABS(fA[2]);
 
 	m_Center = Center;
 

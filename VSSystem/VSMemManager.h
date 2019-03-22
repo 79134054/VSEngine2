@@ -16,10 +16,10 @@ namespace VSEngine2
 
 #ifdef USE_STL_TYPE_TRAIT
 
-	#define HAS_TRIVIAL_CONSTRUCTOR(T) std::has_trivial_constructor<T>::value
-	#define HAS_TRIVIAL_DESTRUCTOR(T) std::has_trivial_destructor<T>::value
-	#define HAS_TRIVIAL_ASSIGN(T) std::has_trivial_assign<T>::value
-	#define HAS_TRIVIAL_COPY(T) std::has_trivial_copy<T>::value
+	#define HAS_TRIVIAL_CONSTRUCTOR(T) std::is_trivially_constructible<T>::value
+	#define HAS_TRIVIAL_DESTRUCTOR(T) std::is_trivially_destructible<T>::value
+	#define HAS_TRIVIAL_ASSIGN(T) std::is_trivially_assignable<T>::value
+	#define HAS_TRIVIAL_COPY(T) std::is_trivially_copyable<T>::value
 	#define IS_POD(T) std::is_pod<T>::value
 	#define IS_ENUM(T) std::is_enum<T>::value
 	#define IS_EMPTY(T) std::is_empty<T>::value

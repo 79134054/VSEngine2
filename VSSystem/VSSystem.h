@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <atlsimpstr.h>
 #pragma warning(disable:4251) //去除模板导出编译的警告
+#pragma warning(disable:4595)
+#pragma warning(disable:4091)
 #ifdef VSSYSTEM_EXPORTS
 	#define VSSYSTEM_API __declspec(dllexport) 
 #else 
