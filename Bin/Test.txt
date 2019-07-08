@@ -1,3 +1,0 @@
-TexturePath Resource\Texture\
-MaxHealth 20
-Direction 3.45 5.67 -123.1
