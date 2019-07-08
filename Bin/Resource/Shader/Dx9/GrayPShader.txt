@@ -1,0 +1,14 @@
+sampler PostInputTexture;
+float4 PSMain(float2 texCoord: TEXCOORD0) : COLOR
+{
+// Read the source color
+float4 col = tex2D(PostInputTexture, texCoord);
+float Intensity;
+// Make it B&W, intensity defines as being
+// I = 0.299*R + 0.587*G + 0.184*B
+Intensity = 0.299*col.r + 0.587*col.g + 0.184*col.r;
+// Note, can also be done as a dot product such as
+// Intensity = dot(col,float4(0.299,0.587,0.184,0));
+// Return the intensity as a uniform RGB color
+return float4(Intensity.xxx,1.0f);
+}

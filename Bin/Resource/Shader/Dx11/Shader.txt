@@ -1,0 +1,1387 @@
+#define PI 3.141592f
+#define INV_PI 0.31831f
+#define PI2 6.283184
+#define INV_PI2 0.15915f
+#define PI_INV2 1.570796
+#define PCF_SAMPLER_NUM 9
+#define FOUR_SAMPLER_NUM 4
+static const float2 PCFSampler[PCF_SAMPLER_NUM] = {float2(-1,-1),float2(-1,0),float2(-1,1),float2(0,-1),float2(0,0),float2(0,1),float2(1,-1),float2(1,0),float2(1,1)};
+static const float2 FOURSampler[FOUR_SAMPLER_NUM] = {float2(-1,0),float2(0,-1),float2(0,1),float2(1,0)};
+struct DirLightType
+{
+	float4 LightDiffuse;
+	float4 LightSpecular;
+	float4 LightWorldDirection; // w ShadowResolution
+	float4 LightParam;// zbias
+	float4 LightFunParam;// xy scale zw offset
+	row_major float4x4 WVP;
+	row_major float4x4 ShadowMatrix[3];
+};
+struct PointLightType
+{
+	float4 LightDiffuse;
+	float4 LightSpecular;
+	float4 LightWorldPos; // w Range
+	float4 ShadowParam; // ShadowResolution zbias
+	float4 LightFunParam;// xy scale zw offset
+	row_major float4x4 WVP;
+	row_major float4x4 ShadowMatrix;
+};
+struct SpotLightType
+{
+	float4 LightDiffuse;
+	float4 LightSpecular;
+	float4 LightWorldPos; // w Range
+	float4 LightWorldDirection; // w ShadowResolution
+	float4 LightParam;	//Falloff LightTheta LightPhi zbias
+	float4 LightFunParam;// xy scale zw offset
+	row_major float4x4 WVP;
+	row_major float4x4 ShadowMatrix;
+};
+struct LightTypeTemp
+{
+	float4 LightDiffuse;
+	float4 LightSpecular;	
+};
+float PCFShadow(SamplerState ShadowSampler , Texture2D ShadowTexture,float RTWidth , float2 xy , float depth)
+{
+	float InvRTWdith = 1.0f / RTWidth;
+	float Result = 0.0f;
+	[unroll]for(int i = 0 ; i < PCF_SAMPLER_NUM ; i++)
+	{
+		
+		float ShadowDepth = ShadowTexture.Sample(ShadowSampler, xy + PCFSampler[i] * InvRTWdith).r;
+		Result += (depth > ShadowDepth) ? 0.0f : 1.0f;
+	}
+	Result /= PCF_SAMPLER_NUM;
+	
+	return Result;
+
+}
+float FourShadow(SamplerState ShadowSampler , Texture2D ShadowTexture,float RTWidth , float2 xy , float depth)
+{
+	float InvRTWdith = 1.0f / RTWidth;
+	float Result = 0.0f;
+	[unroll]for(int i = 0 ; i < FOUR_SAMPLER_NUM ; i++)
+	{
+		
+		float ShadowDepth = ShadowTexture.Sample(ShadowSampler, xy + FOURSampler[i] * InvRTWdith).r;
+		Result += (depth > ShadowDepth) ? 0.0f : 1.0f;
+	}
+	Result /= FOUR_SAMPLER_NUM;
+	
+	return Result;
+
+}
+float PointLightDualParaboloidShadow(PointLightType PointLight, float3 WorldPos ,SamplerState ShadowSampler[2],Texture2D ShadowTexture[2])
+{
+	float3 Dir = WorldPos - PointLight.LightWorldPos.xyz;
+	float  fDistance = length(Dir);
+	Dir = Dir / fDistance;
+	
+	fDistance = saturate(fDistance / PointLight.LightWorldPos.w - PointLight.ShadowParam.y);
+	
+	float ShadowmapResolution = PointLight.ShadowParam.x;
+	
+	float4 ShadowDepth = float4(0.0f,0.0f,0.0f,0.0f);
+	
+	if(Dir.z >= 0.0f)
+	{
+		
+		Dir.x /= Dir.z + 1.01f;
+		Dir.y /= Dir.z + 1.01f;
+		
+		Dir.x = Dir.x * 0.5f + 0.5f + 0.5f / ShadowmapResolution;
+		Dir.y = Dir.y * (-0.5f) + 0.5f + 0.5f / ShadowmapResolution;
+		
+		
+		ShadowDepth.x = ShadowTexture[0].Sample(ShadowSampler[0], Dir.xy + float2(1.0f / ShadowmapResolution ,0.0f )).r;
+		ShadowDepth.y = ShadowTexture[0].Sample(ShadowSampler[0], Dir.xy + float2(-1.0f / ShadowmapResolution ,0.0f )).r;
+		ShadowDepth.z = ShadowTexture[0].Sample(ShadowSampler[0], Dir.xy + float2(0.0f,1.0f / ShadowmapResolution )).r;
+		ShadowDepth.w= ShadowTexture[0].Sample(ShadowSampler[0], Dir.xy + float2(0.0f,-1.0f / ShadowmapResolution )).r;
+		
+		
+	}
+	else
+	{
+		Dir.z *= -1.0f;
+		Dir.x *= -1.0f;
+		Dir.x /= Dir.z + 1.01f;
+		Dir.y /= Dir.z + 1.01f;
+		
+		Dir.x = Dir.x * 0.5f + 0.5f + 0.5f / ShadowmapResolution;
+		Dir.y = Dir.y * (-0.5f) + 0.5f + 0.5f / ShadowmapResolution;
+		ShadowDepth.x = ShadowTexture[1].Sample(ShadowSampler[1], Dir.xy + float2(1.0f / ShadowmapResolution ,0.0f )).r;
+		ShadowDepth.y = ShadowTexture[1].Sample(ShadowSampler[1], Dir.xy + float2(-1.0f / ShadowmapResolution ,0.0f )).r;
+		ShadowDepth.z = ShadowTexture[1].Sample(ShadowSampler[1], Dir.xy + float2(0.0f,1.0f / ShadowmapResolution )).r;
+		ShadowDepth.w= ShadowTexture[1].Sample(ShadowSampler[1], Dir.xy + float2(0.0f,-1.0f / ShadowmapResolution )).r;
+	}
+	
+	float4  Result  = (float4(fDistance,fDistance,fDistance,fDistance) > ShadowDepth) ? 0.0f : 1.0f;
+		
+	float Shadow = dot(Result, .25f);
+	
+	return Shadow;
+}
+float PointLightCubShadow(PointLightType PointLight, float3 WorldPos, float4x4 ViewMatrix,SamplerState  CubeShadowSampler,TextureCube CubeShadowTexture)
+{
+	float3 Dir = WorldPos - PointLight.LightWorldPos.xyz;
+	float  fDistance = length(Dir);
+	Dir = Dir / fDistance;
+	Dir = normalize(mul(Dir,(float3x3)ViewMatrix));
+	float3 SideVector = normalize(cross(Dir, float3(0, 0, 1)));
+	float3 UpVector = cross(SideVector, Dir);
+	float ShadowmapResolution = PointLight.ShadowParam.x;
+	float3 Sample00Coordinate = Dir + SideVector * -.5f / ShadowmapResolution + UpVector * -.5f / ShadowmapResolution;
+	float3 Sample01Coordinate = Dir + SideVector * -.5f / ShadowmapResolution + UpVector * +.5f / ShadowmapResolution;
+	float3 Sample10Coordinate = Dir + SideVector * +.5f / ShadowmapResolution + UpVector * -.5f / ShadowmapResolution;
+	float3 Sample11Coordinate = Dir + SideVector * +.5f / ShadowmapResolution + UpVector * +.5f / ShadowmapResolution;
+		
+	
+	fDistance = saturate(fDistance / PointLight.LightWorldPos.w - PointLight.ShadowParam.y);
+	
+	float4 CubeDistance;
+	CubeDistance.x = CubeShadowTexture.Sample(CubeShadowSampler,Sample00Coordinate).r;
+	CubeDistance.y = CubeShadowTexture.Sample(CubeShadowSampler,Sample01Coordinate).r;
+	CubeDistance.z = CubeShadowTexture.Sample(CubeShadowSampler,Sample10Coordinate).r;
+	CubeDistance.w = CubeShadowTexture.Sample(CubeShadowSampler,Sample11Coordinate).r;
+	
+	float4 Result = (float4(fDistance,fDistance,fDistance,fDistance) > CubeDistance) ? 0.0f : 1.0f;;
+	float Shadow = dot(Result, .25f);
+	return Shadow;
+}
+float PointLightCubShadow(PointLightType PointLight, float3 WorldPos,SamplerState  CubeShadowSampler,TextureCube CubeShadowTexture)
+{
+	float3 Dir = WorldPos - PointLight.LightWorldPos.xyz;
+	float  fDistance = length(Dir);
+	Dir = Dir / fDistance;
+	float3 SideVector = normalize(cross(Dir, float3(0, 0, 1)));
+	float3 UpVector = cross(SideVector, Dir);
+	float ShadowmapResolution = PointLight.ShadowParam.x;
+	float3 Sample00Coordinate = Dir + SideVector * -.5f / ShadowmapResolution + UpVector * -.5f / ShadowmapResolution;
+	float3 Sample01Coordinate = Dir + SideVector * -.5f / ShadowmapResolution + UpVector * +.5f / ShadowmapResolution;
+	float3 Sample10Coordinate = Dir + SideVector * +.5f / ShadowmapResolution + UpVector * -.5f / ShadowmapResolution;
+	float3 Sample11Coordinate = Dir + SideVector * +.5f / ShadowmapResolution + UpVector * +.5f / ShadowmapResolution;
+		
+	
+	fDistance = saturate(fDistance / PointLight.LightWorldPos.w - PointLight.ShadowParam.y);
+	
+	float4 CubeDistance;
+	CubeDistance.x = CubeShadowTexture.Sample(CubeShadowSampler,Sample00Coordinate).r;
+	CubeDistance.y = CubeShadowTexture.Sample(CubeShadowSampler,Sample01Coordinate).r;
+	CubeDistance.z = CubeShadowTexture.Sample(CubeShadowSampler,Sample10Coordinate).r;
+	CubeDistance.w = CubeShadowTexture.Sample(CubeShadowSampler,Sample11Coordinate).r;
+	
+	float4 Result = (float4(fDistance,fDistance,fDistance,fDistance) > CubeDistance) ? 0.0f : 1.0f;;
+	float Shadow = dot(Result, .25f);
+	return Shadow;
+}
+float3 TransPos(float3 Pos,float4x4 Matrix)
+{
+return mul(float4(Pos,1),Matrix).xyz;
+}
+float3 TransProjPos(float3 Pos,float4x4 Matrix)
+{
+	float4 NewPos = mul(float4(Pos,1),Matrix);
+	
+	return NewPos.xyz / NewPos.w;
+}
+float3 TransPos(float4 Pos,float4 U,float4 V,float4 N)
+{
+return float3(dot(Pos,U),dot(Pos,V),dot(Pos,N));
+}
+
+float3 TransNormal(float3 Normal,float4x4 Matrix)
+{
+float3 fNormal = mul(Normal,(float3x3)Matrix);
+return normalize(fNormal);
+}
+
+float3 TransNormal(float3 Normal,float4 U,float4 V,float4 N)
+{
+return float3(dot(Normal,(float3)U),dot(Normal,(float3)V),dot(Normal,(float3)N));
+}
+
+float3 GetZDir(float4x4 Matrix)
+{
+	return float3(Matrix[2][0],Matrix[2][1],Matrix[2][2]);
+}
+float3 ComputeDir(float3 Orgin,float3 End)
+{
+	return normalize(Orgin - End);
+}
+float ComputeLength(float3 Orgin,float3 End)
+{
+	return length(Orgin - End);	
+}
+float4 DecodeNormal1(float4 Normal)
+{
+	return Normal * 2.0f - 1.0f;
+}
+float3 DecodeNormal1(float3 Normal)
+{
+	return Normal * 2.0f - 1.0f;
+}
+float2 DecodeNormal1(float2 Normal)
+{
+	return Normal * 2.0f - 1.0f;
+}
+float DecodeNormal1(float Normal)
+{
+	return Normal * 2.0f - 1.0f;
+}
+
+float4 RecodeNormal1(float4 Normal)
+{
+	return (Normal + 1.0f) * 0.5f;
+}
+float3 RecodeNormal1(float3 Normal)
+{
+	return (Normal + 1.0f) * 0.5f;
+}
+float2 RecodeNormal1(float2 Normal)
+{
+	return (Normal + 1.0f) * 0.5f;
+}
+float RecodeNormal1(float Normal)
+{
+	return (Normal + 1.0f) * 0.5f;
+}
+
+float3 DecodeNormal2(float3 Normal,float4 Tangent)
+{
+	float3 Binormal = cross(Normal,Tangent.xyz) * Tangent.w;
+	return Binormal;
+}
+float2 DecodeNormal3(float3 Normal)
+{
+	Normal = normalize(Normal);
+	return Normal.xy;
+}
+float3 RecodeNormal3(float2 Normal)
+{
+	float z = -sqrt(1.0f - dot(Normal,Normal));
+	return float3(Normal.xy,z);
+}
+
+float1 GreaterZeroPow(float Value,float Exp)
+{
+ Value = max(Value,0.0001f);
+ return pow(Value,Exp);
+}
+float2 GreaterZeroPow(float2 Value,float Exp)
+{
+ Value = max(Value,float2(0.0001f,0.0001f));
+ return pow(Value,Exp);
+}
+float3 GreaterZeroPow(float3 Value,float Exp)
+{
+ Value = max(Value,float3(0.0001f,0.0001f,0.0001f));
+ return pow(Value,Exp);
+}
+float4 GreaterZeroPow(float4 Value,float Exp)
+{
+ Value = max(Value,float4(0.0001f,0.0001f,0.0001f,0.0001f));
+ return pow(Value,Exp);
+}
+
+float1 SaturatePow(float Value,float Exp)
+{
+ return pow(saturate(Value),Exp);
+}
+float2 SaturatePow(float2 Value,float Exp)
+{
+return pow(saturate(Value),Exp);
+}
+float3 SaturatePow(float3 Value,float Exp)
+{
+ return pow(saturate(Value),Exp);
+}
+float4 SaturatePow(float4 Value,float Exp)
+{
+return pow(saturate(Value),Exp);
+}
+
+float3 BumpNormal(float3 T,float3 B,float3 N,float4 TexNormal)
+{
+float3x3 TangentMatrix;
+TangentMatrix[0] = normalize(T);
+TangentMatrix[1] = normalize(B);
+TangentMatrix[2] = normalize(N);
+float3 TextureNormal = TexNormal.xyz;
+float3 LocalNormal = mul( TextureNormal, TangentMatrix);
+return LocalNormal;
+}
+float4 BlinnPhoneSpec(float4 Specular,float SpecularPow,float3 WorldNormal,float3 WorldCameraDir,float4 LightSpecular,float3 WorldLightDir)
+{
+float3 vHalfDir = normalize(-WorldLightDir + WorldCameraDir);
+float  fSpecularCosine = saturate(dot(vHalfDir,WorldNormal));
+float  fSpecular = pow(fSpecularCosine,SpecularPow);
+float4 vSpecular = Specular * LightSpecular * fSpecular;
+return vSpecular;
+}
+float4 PhoneSpec(float4 Specular,float SpecularPow,float3 WorldNormal,float3 WorldCameraDir,float4 LightSpecular,float3 WorldLightDir)
+{
+float3 reflect = normalize(2 * WorldNormal * dot(WorldNormal,-WorldLightDir)+ WorldLightDir);
+float  fSpecularCosine = saturate(dot(WorldCameraDir,reflect));
+float  fSpecular = pow(fSpecularCosine,SpecularPow);
+float4 vSpecular = Specular * LightSpecular * fSpecular;
+return vSpecular;
+}
+float4 DirectionalLightFun(float4 Diffuse,float4 Specular,float SpecularPow,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float3 WorldLightDir)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+float4 vDiffuse = Diffuse * LightDiffuse * saturate(dot(-WorldLightDir,WorldNormal));
+#if	BlinnPhone > 0
+return vDiffuse + BlinnPhoneSpec(Specular,SpecularPow,WorldNormal,WorldCameraDir,LightSpecular,WorldLightDir);
+#else
+return vDiffuse + PhoneSpec(Specular,SpecularPow,WorldNormal,WorldCameraDir,LightSpecular,WorldLightDir);
+#endif
+}
+float4 IsotropicWardDirectionalLightFun(float4 Diffuse,float4 Specular,float Roughness,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float3 WorldLightDir
+#if IsotropicWarLookUpTable > 0
+			,SamplerState IsotropicWardLookUpTableSampler
+			,Texture1D IsotropicWardLookUpTableTexture
+#endif
+			)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+float r_sq = (Roughness * Roughness) + 1e-5f;
+float exp_a = 0.0f;
+#if IsotropicWarLookUpTable > 0
+float tc = (NdotH + 1.0f) * 0.5f;
+exp_a = IsotropicWardLookUpTableTexture.Sample(IsotropicWardLookUpTableSampler,tc).r;
+#else
+exp_a = -pow( saturate(tan( acos( NdotH ) )), 2.0f );
+#endif
+float spec_num = exp( exp_a / r_sq );
+float spec_den = 4.0f * PI * r_sq; 
+spec_den *= sqrt( NdotL * NdotV );
+float Rs = ( spec_num / spec_den );
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs);
+}
+float4 AnisotropicWardDirectionalLightFun(float4 Diffuse,float4 Specular,float RoughnessX,float RoughnessY,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float3 WorldLightDir)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+
+float3 epsilon = float3( 1.0f, 0.0f, 0.0f ); 
+float3 tangent = normalize( cross( WorldNormal, epsilon ) ); 
+float3 bitangent = normalize( cross( WorldNormal, tangent ) );
+RoughnessX += 1e-5f;
+RoughnessY += 1e-5f;
+float HdotT = dot( Half, tangent ); 
+float HdotB = dot( Half, bitangent );
+float beta_a = HdotT / RoughnessX; 
+beta_a *= beta_a; 
+float beta_b = HdotB / RoughnessY; 
+beta_b *= beta_b;
+float beta = -2.0f * ( ( beta_a + beta_b ) / ( 1.0f + NdotH ) );
+float s_den = 4.0f * PI;
+s_den *= RoughnessX; 
+s_den *= RoughnessY;
+s_den *= sqrt( NdotL * NdotV );
+float Rs = ( exp( beta ) / s_den );
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs);
+}
+float4 IsotropicWardPointLightFun(float4 Diffuse,float4 Specular,float Roughness,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float3 LightWorldPos
+#if IsotropicWarLookUpTable > 0
+			,SamplerState IsotropicWardLookUpTableSampler
+			,Texture2D IsotropicWardLookUpTableTexture
+#endif
+			)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+float r_sq = (Roughness * Roughness) + 1e-5f;
+float exp_a = 0.0f;
+#if IsotropicWarLookUpTable > 0
+float tc = (NdotH + 1.0f) * 0.5f;
+exp_a = IsotropicWardLookUpTableTexture.Sample(IsotropicWardLookUpTableSampler,tc).r;
+#else
+exp_a = -pow( saturate(tan( acos( NdotH ) )), 2.0f );
+#endif
+float spec_num = exp( exp_a / r_sq );
+float spec_den = 4.0f * PI * r_sq; 
+spec_den *= sqrt( NdotL * NdotV );
+float Rs = ( spec_num / spec_den );
+
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs) * fLightAttenuationDiv;
+}
+float4 AnisotropicWardPointLightFun(float4 Diffuse,float4 Specular,float RoughnessX,float RoughnessY,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float3 LightWorldPos)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+
+float3 epsilon = float3( 1.0f, 0.0f, 0.0f ); 
+float3 tangent = normalize( cross( WorldNormal, epsilon ) ); 
+float3 bitangent = normalize( cross( WorldNormal, tangent ) );
+RoughnessX += 1e-5f;
+RoughnessY += 1e-5f;
+float HdotT = dot( Half, tangent ); 
+float HdotB = dot( Half, bitangent );
+float beta_a = HdotT / RoughnessX; 
+beta_a *= beta_a; 
+float beta_b = HdotB / RoughnessY; 
+beta_b *= beta_b;
+float beta = -2.0f * ( ( beta_a + beta_b ) / ( 1.0f + NdotH ) );
+float s_den = 4.0f * PI;
+s_den *= RoughnessX; 
+s_den *= RoughnessY;
+s_den *= sqrt( NdotL * NdotV );
+float Rs = ( exp( beta ) / s_den );
+
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs) * fLightAttenuationDiv;
+}
+float4 IsotropicWardSpotLightFun(float4 Diffuse,float4 Specular,float Roughness,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection
+#if IsotropicWarLookUpTable > 0
+			,SamplerState IsotropicWardLookUpTableSampler
+			,Texture2D IsotropicWardLookUpTableTexture
+#endif
+			)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+float r_sq = (Roughness * Roughness) + 1e-5f;
+float exp_a = 0.0f;
+#if IsotropicWarLookUpTable > 0
+float tc = (NdotH + 1.0f) * 0.5f;
+exp_a = IsotropicWardLookUpTableTexture.Sample(IsotropicWardLookUpTableSampler,tc).r;
+#else
+exp_a = -pow( saturate(tan( acos( NdotH ) )), 2.0f );
+#endif
+float spec_num = exp( exp_a / r_sq );
+float spec_den = 4.0f * PI * r_sq; 
+spec_den *= sqrt( NdotL * NdotV );
+float Rs = ( spec_num / spec_den );
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs) * fLightAttenuationDiv  * fLightEffect;
+
+
+}
+float4 AnisotropicWardSpotLightFun(float4 Diffuse,float4 Specular,float RoughnessX,float RoughnessY,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+
+float3 epsilon = float3( 1.0f, 0.0f, 0.0f ); 
+float3 tangent = normalize( cross( WorldNormal, epsilon ) ); 
+float3 bitangent = normalize( cross( WorldNormal, tangent ) );
+RoughnessX += 1e-5f;
+RoughnessY += 1e-5f;
+float HdotT = dot( Half, tangent ); 
+float HdotB = dot( Half, bitangent );
+float beta_a = HdotT / RoughnessX; 
+beta_a *= beta_a; 
+float beta_b = HdotB / RoughnessY; 
+beta_b *= beta_b;
+float beta = -2.0f * ( ( beta_a + beta_b ) / ( 1.0f + NdotH ) );
+float s_den = 4.0f * PI;
+s_den *= RoughnessX; 
+s_den *= RoughnessY;
+s_den *= sqrt( NdotL * NdotV );
+float Rs = ( exp( beta ) / s_den );
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs) * fLightAttenuationDiv  * fLightEffect;
+
+
+}
+float4 CookTorranceDirectionalLightFun(float4 Diffuse,float4 Specular,float Roughness,float C , float R,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float3 WorldLightDir
+#if CookTorranceSpecluarType == 0
+			,SamplerState CookTorranceLookUpTableSampler
+			,Texture2D CookTorranceLookUpTableTexture
+#endif
+			)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+float VdotH = saturate(dot(WorldCameraDir,Half));
+float r_sq = Roughness * Roughness;
+float geo_numerator = 2.0f * NdotH;
+float geo_denominator = VdotH; 
+float geo_b = (geo_numerator * NdotV ) / geo_denominator; 
+float geo_c = (geo_numerator * NdotL ) / geo_denominator; 
+float geo = min( 1.0f, min( geo_b, geo_c ) );
+
+float roughness = 0.0f;
+#if CookTorranceSpecluarType == 0
+	float2 tc = float2(NdotH, Roughness);
+	tc.x = (tc.x + 1.0f) * 0.5f;
+	roughness = CookTorranceLookUpTableTexture.Sample( CookTorranceLookUpTableSampler, tc ).r;
+#elif CookTorranceSpecluarType == 1
+	float roughness_a = 1.0f / ( 4.0f * r_sq * pow( NdotH, 4 ) );
+	float roughness_b = NdotH * NdotH - 1.0f; 
+	float roughness_c = r_sq * NdotH * NdotH; 
+	roughness = roughness_a * exp( roughness_b / roughness_c );
+#elif CookTorranceSpecluarType == 2
+	float alpha = acos(NdotH); 
+	roughness = C * exp( -( alpha / r_sq ) );
+#endif
+
+float fresnel = pow( 1.0f - VdotH, 5.0f ); 
+fresnel *= ( 1.0f - R ); 
+fresnel += R;
+
+float Rs_numerator = ( fresnel * geo * roughness ); 
+float Rs_denominator = NdotV * NdotL; 
+float Rs = Rs_numerator/ Rs_denominator;
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs);
+}
+
+float4 CookTorrancePointLightFun(float4 Diffuse,float4 Specular,float Roughness,float C , float R,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float3 LightWorldPos
+#if CookTorranceSpecluarType == 0
+			,SamplerState CookTorranceLookUpTableSampler
+			,Texture2D CookTorranceLookUpTableTexture
+#endif
+			)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+float VdotH = saturate(dot(WorldCameraDir,Half));
+float r_sq = Roughness * Roughness;
+float geo_numerator = 2.0f * NdotH;
+float geo_denominator = VdotH; 
+float geo_b = (geo_numerator * NdotV ) / geo_denominator; 
+float geo_c = (geo_numerator * NdotL ) / geo_denominator; 
+float geo = min( 1.0f, min( geo_b, geo_c ) );
+
+float roughness = 0.0f;
+#if CookTorranceSpecluarType == 0
+	float2 tc = float2(NdotH, Roughness);
+	tc.x = (tc.x + 1.0f) * 0.5f;
+	roughness = CookTorranceLookUpTableTexture.Sample( CookTorranceLookUpTableSampler, tc ).r;
+#elif CookTorranceSpecluarType == 1
+	float roughness_a = 1.0f / ( 4.0f * r_sq * pow( NdotH, 4 ) );
+	float roughness_b = NdotH * NdotH - 1.0f; 
+	float roughness_c = r_sq * NdotH * NdotH; 
+	roughness = roughness_a * exp( roughness_b / roughness_c );
+#elif CookTorranceSpecluarType == 2
+	float alpha = acos(NdotH); 
+	roughness = C * exp( -( alpha / r_sq ) );
+#endif
+
+float fresnel = pow( 1.0f - VdotH, 5.0f ); 
+fresnel *= ( 1.0f - R ); 
+fresnel += R;
+
+float Rs_numerator = ( fresnel * geo * roughness ); 
+float Rs_denominator = NdotV * NdotL; 
+float Rs = Rs_numerator/ Rs_denominator;
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs) * fLightAttenuationDiv;
+}
+float4 CookTorranceSpotLightFun(float4 Diffuse,float4 Specular,float Roughness,float C , float R,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection
+#if CookTorranceSpecluarType == 0
+			,SamplerState CookTorranceLookUpTableSampler
+			,Texture2D CookTorranceLookUpTableTexture
+#endif
+			)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 Half = normalize(-WorldLightDir + WorldCameraDir);
+float NdotL = saturate(dot(WorldNormal,-WorldLightDir));
+float NdotH = saturate(dot(WorldNormal,Half));
+float NdotV = saturate(dot(WorldNormal,WorldCameraDir));
+float VdotH = saturate(dot(WorldCameraDir,Half));
+float r_sq = Roughness * Roughness;
+float geo_numerator = 2.0f * NdotH;
+float geo_denominator = VdotH; 
+float geo_b = (geo_numerator * NdotV ) / geo_denominator; 
+float geo_c = (geo_numerator * NdotL ) / geo_denominator; 
+float geo = min( 1.0f, min( geo_b, geo_c ) );
+
+float roughness = 0.0f;
+#if CookTorranceSpecluarType == 0
+	float2 tc = float2(NdotH, Roughness);
+	tc.x = (tc.x + 1.0f) * 0.5f;
+	roughness = CookTorranceLookUpTableTexture.Sample( CookTorranceLookUpTableSampler, tc ).r;
+#elif CookTorranceSpecluarType == 1
+	float roughness_a = 1.0f / ( 4.0f * r_sq * pow( NdotH, 4 ) );
+	float roughness_b = NdotH * NdotH - 1.0f; 
+	float roughness_c = r_sq * NdotH * NdotH; 
+	roughness = roughness_a * exp( roughness_b / roughness_c );
+#elif CookTorranceSpecluarType == 2
+	float alpha = acos(NdotH); 
+	roughness = C * exp( -( alpha / r_sq ) );
+#endif
+
+float fresnel = pow( 1.0f - VdotH, 5.0f ); 
+fresnel *= ( 1.0f - R ); 
+fresnel += R;
+
+float Rs_numerator = ( fresnel * geo * roughness ); 
+float Rs_denominator = NdotV * NdotL; 
+float Rs = Rs_numerator/ Rs_denominator;
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+return max(0.0f,NdotL) * (Diffuse * LightDiffuse + Specular * LightSpecular * Rs) * fLightAttenuationDiv  * fLightEffect;
+
+
+}
+float4 SchlickDirectionalLightFun(float4 Diffuse,float4 Specular,float SpecularPow,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float3 WorldLightDir)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+float4 vDiffuse = Diffuse * LightDiffuse * saturate(dot(-WorldLightDir,WorldNormal));
+
+float3 Reflection = normalize(2.0f * WorldNormal * dot(WorldNormal,-WorldLightDir) + WorldLightDir);
+float RdotV = max(dot(Reflection,WorldCameraDir),0.0f);
+float SchlickTem = RdotV / (SpecularPow - SpecularPow * RdotV + RdotV);
+float4 vSpecular = SchlickTem * Specular * LightSpecular;
+
+
+return vDiffuse + vSpecular;
+}
+
+float4 OrenNayarDirectionalLightFun(float4 Diffuse,float RoughnessSquared ,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float3 WorldLightDir
+#if OrenNayarLookUpTable >0
+			,SamplerState OrenNayarLookUpTableSampler
+			,Texture2D OrenNayarLookUpTableTexture
+#endif
+			)
+{
+//可以优化查表
+WorldLightDir = normalize(WorldLightDir);
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+
+float AngleDifference = max(0.0f,dot(normalize(WorldCameraDir - WorldNormal * VdotN),normalize((-WorldLightDir) - WorldNormal * LdotN )));
+float ST = 0.0f;
+#if OrenNayarLookUpTable >0
+float2 Para = float2(VdotN,LdotN);
+Para = (Para + 1.0f) * 0.5f;
+ST = OrenNayarLookUpTableTexture.Sample(OrenNayarLookUpTableSampler,Para).r;
+#else
+float AngleViewNormal = acos(VdotN); 
+float AngleLightNormal = acos(LdotN);
+float Alpha = max(AngleViewNormal,AngleLightNormal);
+float Beta = min(AngleViewNormal,AngleLightNormal);
+ST = abs(sin(Alpha) * tan(Beta));
+#endif
+float A = 1.0f - (0.5f * RoughnessSquared) / (RoughnessSquared + 0.33f);
+float B = (0.45f * RoughnessSquared) / (RoughnessSquared + 0.09f);
+float4 vDiffuse = Diffuse * LightDiffuse * (A + B * AngleDifference * ST) * max(0.0f,LdotN);
+return vDiffuse;
+}
+
+float4 MinnaertDirectionalLightFun(float4 Diffuse,float Power ,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float3 WorldLightDir)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+float LdotN = saturate(dot(-WorldLightDir,WorldNormal));
+float VdotN = saturate(dot(WorldCameraDir,WorldNormal));
+
+float4 vDiffuse = Diffuse * LightDiffuse * (pow(LdotN * VdotN ,Power)) * max(0.0f,LdotN);
+return vDiffuse;
+}
+float StraussF(float VdotN)
+{
+float Kf = 1.12f;
+return ((1.0f / ((VdotN - Kf) * (VdotN - Kf))) - 1.0f/(Kf * Kf)) / ((1.0f / ((1.0f - Kf) * (1.0f - Kf))) - 1.0f/(Kf * Kf));
+}
+float StraussS(float VdotN)
+{
+float Ks = 1.01f;
+return (1.0f / ((1.0f - Ks) * (1.0f - Ks)) - 1.0f / ((VdotN - Ks) * (VdotN - Ks))) / (1.0f / ((1.0f - Ks) * (1.0f - Ks)) - 1.0f / (Ks * Ks));
+}
+float4 StraussDirectionalLightFun(float4 Diffuse,float4 Specular,
+			float Smoothness , float Metalness, float Transparency, float K,
+			float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,
+			float3 WorldLightDir
+#if StraussLookUpTable >0
+			,SamplerState StraussFLookUpTableSampler
+			,Texture1D StraussFLookUpTableTexture
+			,SamplerState StraussSLookUpTableSampler		
+			,Texture1D StraussSLookUpTableTexture
+#endif
+			)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+float3 H = reflect(-WorldLightDir,WorldNormal);
+float HdotV = dot(H,WorldCameraDir);
+
+float S_Cube = Smoothness * Smoothness * Smoothness;
+float d = (1.0f - Metalness * Smoothness);
+float Rd = (1.0f - S_Cube) * (1.0f- Transparency);
+
+float r = (1.0f - Transparency) - Rd;
+
+#if StraussLookUpTable >0
+float F_LdotN = StraussFLookUpTableTexture.Sample(StraussFLookUpTableSampler,(LdotN + 1.0f) * 0.5f).r;
+float S_LdotN = StraussSLookUpTableTexture.Sample(StraussSLookUpTableSampler,(LdotN + 1.0f) * 0.5f).r;
+float S_VdotN = StraussSLookUpTableTexture.Sample(StraussSLookUpTableSampler,(VdotN + 1.0f) * 0.5f).r;
+#else
+float F_LdotN = StraussF(LdotN);
+float S_LdotN = StraussS(LdotN);
+float S_VdotN = StraussS(VdotN);
+#endif
+
+float j = F_LdotN * S_LdotN * S_VdotN;
+
+float ref = min(1.0f, r + j * (r + K));
+
+float3 Cs = float3(1.0f,1.0f,1.0f) + Metalness * (1.0f -  F_LdotN) * (Diffuse.xyz - float3(1.0f,1.0f,1.0f));
+
+float3 s = Cs * ref * pow(saturate(-HdotV),3.0f / (1.0f - Smoothness));
+
+return Diffuse * LightDiffuse * max(0.0f,LdotN) * d * Rd + float4(s,1.0f) * Specular * LightSpecular;
+}
+
+float4 ShirleyDirectionalLightFun(float4 Diffuse,float4 Specular,float NU,float NV,float Rs,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float3 WorldLightDir)
+{
+
+WorldLightDir = normalize(WorldLightDir);
+float3 H = normalize(WorldCameraDir - WorldLightDir);
+float3 epsilon = float3(1.0f,0.0f,0.0f);
+float3 tangent = normalize(cross(WorldNormal,epsilon));
+float3 bitangnet = normalize(cross(WorldNormal,tangent));
+float VdotN = dot(WorldCameraDir,WorldNormal);
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float HdotN = dot(H,WorldNormal);
+float HdotL = dot(H,-WorldLightDir);
+float HdotT = dot(H,tangent);
+float HdotB = dot(H,bitangnet);
+float4 vDiffuse = 28.0f * Diffuse * LightDiffuse * (1.0f - Rs) * (1.0f - pow(1.0f - LdotN * 0.5f,5.0f)) * (1.0f - pow(1.0f - VdotN * 0.5f,5.0f)) / (23.0f * PI);
+float ps_num_exp = NU * HdotT * HdotT + NV * HdotB * HdotB;
+ps_num_exp /= (1.0f - HdotN * HdotN);
+float ps_num = sqrt((NU + 1) * (NV + 1));
+ps_num *= pow(saturate(HdotN) , ps_num_exp);
+float ps_den = 8.0f * PI * HdotL;
+ps_den *= max(LdotN,VdotN);
+float4 vSpecular = LightSpecular * Specular * (ps_num / ps_den) * (Rs + (1.0f - Rs) * pow(1.0f - HdotL , 5.0f));
+return vDiffuse + vSpecular;
+}
+
+float4 PointLightFun(float4 Diffuse,float4 Specular,float SpecularPow,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float3 LightWorldPos)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+float4 vDiffuse = Diffuse * LightDiffuse * saturate(dot(-WorldLightDir,WorldNormal));
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+#if	BlinnPhone > 0
+return (vDiffuse + BlinnPhoneSpec(Specular,SpecularPow,WorldNormal,WorldCameraDir,LightSpecular,WorldLightDir)) * fLightAttenuationDiv ;
+#else
+return (vDiffuse + PhoneSpec(Specular,SpecularPow,WorldNormal,WorldCameraDir,LightSpecular,WorldLightDir)) * fLightAttenuationDiv ;
+#endif
+}
+
+float4 SchlickPointLightFun(float4 Diffuse,float4 Specular,float SpecularPow,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float3 LightWorldPos)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+float4 vDiffuse = Diffuse * LightDiffuse * saturate(dot(-WorldLightDir,WorldNormal));
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+float3 Reflection = normalize(2.0f * WorldNormal * dot(WorldNormal,-WorldLightDir) + WorldLightDir);
+float RdotV = max(dot(Reflection,WorldCameraDir),0.0f);
+float SchlickTem = RdotV / (SpecularPow - SpecularPow * RdotV + RdotV);
+float4 vSpecular = SchlickTem * Specular * LightSpecular;
+
+return (vDiffuse + vSpecular) * fLightAttenuationDiv ;
+
+
+}
+
+float4 OrenNayarPointLightFun(float4 Diffuse,float RoughnessSquared,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float Range,float3 LightWorldPos
+#if OrenNayarLookUpTable >0
+			,SamplerState OrenNayarLookUpTableSampler
+			,Texture2D OrenNayarLookUpTableTexture
+#endif
+			)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+
+float AngleDifference = max(0.0f,dot(normalize(WorldCameraDir - WorldNormal * VdotN),normalize((-WorldLightDir) - WorldNormal * LdotN )));
+float ST = 0.0f;
+#if OrenNayarLookUpTable >0
+float2 Para = float2(VdotN,LdotN);
+Para = (Para + 1.0f) * 0.5f;
+ST = OrenNayarLookUpTableTexture.Sample(OrenNayarLookUpTableSampler,Para).r;
+#else
+float AngleViewNormal = acos(VdotN); 
+float AngleLightNormal = acos(LdotN);
+float Alpha = max(AngleViewNormal,AngleLightNormal);
+float Beta = min(AngleViewNormal,AngleLightNormal);
+ST = abs(sin(Alpha) * tan(Beta));
+#endif
+float A = 1.0f - (0.5f * RoughnessSquared) / (RoughnessSquared + 0.33f);
+float B = (0.45f * RoughnessSquared) / (RoughnessSquared + 0.09f);
+float4 vDiffuse = Diffuse * LightDiffuse * (A + B * AngleDifference * ST) * max(0.0f,LdotN);
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+return vDiffuse * fLightAttenuationDiv ;
+
+}
+float4 MinnaertPointLightFun(float4 Diffuse,float Power,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float Range,float3 LightWorldPos)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+
+
+float4 vDiffuse = Diffuse * LightDiffuse * (pow(saturate(LdotN * VdotN) ,Power)) * max(0.0f,LdotN);
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+return vDiffuse * fLightAttenuationDiv ;
+
+}
+
+float4 StraussPointLightFun(float4 Diffuse,float4 Specular,
+			float Smoothness , float Metalness, float Transparency, float K,
+			float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,
+			float Range,float3 LightWorldPos
+#if StraussLookUpTable >0
+			,SamplerState StraussFLookUpTableSampler
+			,Texture1D StraussFLookUpTableTexture
+			,SamplerState StraussSLookUpTableSampler			
+			,Texture1D StraussSLookUpTableTexture
+#endif
+			)
+{
+
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+float3 H = reflect(-WorldLightDir,WorldNormal);
+float HdotV = dot(H,WorldCameraDir);
+
+float S_Cube = Smoothness * Smoothness * Smoothness;
+float d = (1.0f - Metalness * Smoothness);
+float Rd = (1.0f - S_Cube) * (1.0f- Transparency);
+
+float r = (1.0f - Transparency) - Rd;
+
+#if StraussLookUpTable >0
+float F_LdotN = StraussFLookUpTableTexture.Sample(StraussFLookUpTableSampler,(LdotN + 1.0f) * 0.5f).r;
+float S_LdotN = StraussSLookUpTableTexture.Sample(StraussSLookUpTableSampler,(LdotN + 1.0f) * 0.5f).r;
+float S_VdotN = StraussSLookUpTableTexture.Sample(StraussSLookUpTableSampler,(VdotN + 1.0f) * 0.5f).r;
+#else
+float F_LdotN = StraussF(LdotN);
+float S_LdotN = StraussS(LdotN);
+float S_VdotN = StraussS(VdotN);
+#endif
+
+float j = F_LdotN * S_LdotN * S_VdotN;
+
+float ref = min(1.0f, r + j * (r + K));
+
+float3 Cs = float3(1.0f,1.0f,1.0f) + Metalness * (1.0f -  F_LdotN) * (Diffuse.xyz - float3(1.0f,1.0f,1.0f));
+
+float3 s = Cs * ref * pow(saturate(-HdotV),3.0f / (1.0f - Smoothness));
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+return (Diffuse * LightDiffuse * max(0.0f,LdotN) * d * Rd + float4(s,1.0f) * Specular * LightSpecular) * fLightAttenuationDiv;
+}
+
+float4 ShirleyPointLightFun(float4 Diffuse,float4 Specular,float NU,float NV,float Rs,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float3 LightWorldPos)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);;
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 H = normalize(WorldCameraDir - WorldLightDir);
+float3 epsilon = float3(1.0f,0.0f,0.0f);
+float3 tangent = normalize(cross(WorldNormal,epsilon));
+float3 bitangnet = normalize(cross(WorldNormal,tangent));
+float VdotN = dot(WorldCameraDir,WorldNormal);
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float HdotN = dot(H,WorldNormal);
+float HdotL = dot(H,-WorldLightDir);
+float HdotT = dot(H,tangent);
+float HdotB = dot(H,bitangnet);
+float4 vDiffuse = 28.0f * Diffuse * LightDiffuse * (1.0f - Rs) * (1.0f - pow(1.0f - LdotN * 0.5f,5.0f)) * (1.0f - pow(1.0f - VdotN * 0.5f,5.0f)) / (23.0f * PI);
+float ps_num_exp = NU * HdotT * HdotT + NV * HdotB * HdotB;
+ps_num_exp /= (1.0f - HdotN * HdotN);
+float ps_num = sqrt((NU + 1) * (NV + 1));
+ps_num *= pow(saturate(HdotN) , ps_num_exp);
+float ps_den = 8.0f * PI * HdotL;
+ps_den *= max(LdotN,VdotN);
+float4 vSpecular = LightSpecular * Specular * (ps_num / ps_den) * (Rs + (1.0f - Rs) * pow(1.0f - HdotL , 5.0f));
+
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+
+return (vDiffuse + vSpecular) * fLightAttenuationDiv ;
+
+}
+
+
+float4 OrenNayarSpotLightFun(float4 Diffuse,float RoughnessSquared,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection
+#if OrenNayarLookUpTable >0
+			,SamplerState OrenNayarLookUpTableSampler
+			,Texture2D OrenNayarLookUpTableTexture
+#endif
+			)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+
+float AngleDifference = max(0.0f,dot(normalize(WorldCameraDir - WorldNormal * VdotN),normalize((-WorldLightDir) - WorldNormal * LdotN )));
+float ST = 0.0f;
+#if OrenNayarLookUpTable >0
+float2 Para = float2(VdotN,LdotN);
+Para = (Para + 1.0f) * 0.5f;
+ST = OrenNayarLookUpTableTexture.Sample(OrenNayarLookUpTableSampler,Para).r;
+#else
+float AngleViewNormal = acos(VdotN); 
+float AngleLightNormal = acos(LdotN);
+float Alpha = max(AngleViewNormal,AngleLightNormal);
+float Beta = min(AngleViewNormal,AngleLightNormal);
+ST = abs(sin(Alpha) * tan(Beta));
+#endif
+float A = 1.0f - (0.5f * RoughnessSquared) / (RoughnessSquared + 0.33f);
+float B = (0.45f * RoughnessSquared) / (RoughnessSquared + 0.09f);
+float4 vDiffuse = Diffuse * LightDiffuse * (A + B * AngleDifference * ST) * max(0.0f,LdotN);
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+return (vDiffuse) * fLightAttenuationDiv  * fLightEffect;
+
+}
+float4 SpotLightFun(float4 Diffuse,float4 Specular,float SpecularPow,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+float4 vDiffuse = Diffuse * LightDiffuse * saturate(dot(-WorldLightDir,WorldNormal));
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+#if	BlinnPhone > 0
+return (vDiffuse + BlinnPhoneSpec(Specular,SpecularPow,WorldNormal,WorldCameraDir,LightSpecular,WorldLightDir)) * fLightAttenuationDiv  * fLightEffect;
+#else
+return (vDiffuse + PhoneSpec(Specular,SpecularPow,WorldNormal,WorldCameraDir,LightSpecular,WorldLightDir)) * fLightAttenuationDiv  * fLightEffect;
+#endif
+}
+
+float4 SchlickSpotLightFun(float4 Diffuse,float4 Specular,float SpecularPow,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+float4 vDiffuse = Diffuse * LightDiffuse * saturate(dot(-WorldLightDir,WorldNormal));
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+float3 Reflection = normalize(2.0f * WorldNormal * dot(WorldNormal,-WorldLightDir) + WorldLightDir);
+float RdotV = max(dot(Reflection,WorldCameraDir),0.0f);
+float SchlickTem = RdotV / (SpecularPow - SpecularPow * RdotV + RdotV);
+float4 vSpecular = SchlickTem * Specular * LightSpecular;
+
+return (vDiffuse + vSpecular) * fLightAttenuationDiv  * fLightEffect;
+
+}
+
+float4 MinnaertSpotLightFun(float4 Diffuse,float Power,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+
+float4 vDiffuse = Diffuse * LightDiffuse * (pow(saturate(LdotN * VdotN) ,Power)) * max(0.0f,LdotN);
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+return (vDiffuse) * fLightAttenuationDiv  * fLightEffect;
+
+}
+
+float4 StraussSpotLightFun(float4 Diffuse,float4 Specular,
+			float Smoothness , float Metalness, float Transparency, float K,
+			float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,
+			float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection
+#if StraussLookUpTable >0
+			,SamplerState StraussFLookUpTableSampler
+			,Texture1D StraussFLookUpTableTexture
+			,SamplerState StraussSLookUpTableSampler		
+			,Texture1D StraussSLookUpTableTexture
+#endif
+			)
+{
+
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float VdotN = dot(WorldCameraDir,WorldNormal);
+float3 H = reflect(-WorldLightDir,WorldNormal);
+float HdotV = dot(H,WorldCameraDir);
+
+float S_Cube = Smoothness * Smoothness * Smoothness;
+float d = (1.0f - Metalness * Smoothness);
+float Rd = (1.0f - S_Cube) * (1.0f- Transparency);
+
+float r = (1.0f - Transparency) - Rd;
+
+#if StraussLookUpTable >0
+float F_LdotN = StraussFLookUpTableTexture.Sample(StraussFLookUpTableSampler,(LdotN + 1.0f) * 0.5f).r;
+float S_LdotN = StraussSLookUpTableTexture.Sample(StraussSLookUpTableSampler,(LdotN + 1.0f) * 0.5f).r;
+float S_VdotN = StraussSLookUpTableTexture.Sample(StraussSLookUpTableSampler,(VdotN + 1.0f) * 0.5f).r;
+#else
+float F_LdotN = StraussF(LdotN);
+float S_LdotN = StraussS(LdotN);
+float S_VdotN = StraussS(VdotN);
+#endif
+
+float j = F_LdotN * S_LdotN * S_VdotN;
+
+float ref = min(1.0f, r + j * (r + K));
+
+float3 Cs = float3(1.0f,1.0f,1.0f) + Metalness * (1.0f -  F_LdotN) * (Diffuse.xyz - float3(1.0f,1.0f,1.0f));
+
+float3 s = Cs * ref * pow(saturate(-HdotV),3.0f / (1.0f - Smoothness));
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+return (Diffuse * LightDiffuse * max(0.0f,LdotN) * d * Rd + float4(s,1.0f) * Specular * LightSpecular)/ fLightAttenuationDiv  * fLightEffect;
+}
+
+float4 ShirleySpotLightFun(float4 Diffuse,float4 Specular,float NU,float NV,float Rs,float3 WorldPos,float3 WorldNormal,float3 WorldCameraDir,
+			float4 LightDiffuse,float4 LightSpecular,float Range,float Phi,float Theta,float Falloff,
+			float3 LightWorldPos,float3 LightWorldDirection)
+{
+float3 WorldLightDir = WorldPos - LightWorldPos;
+float  fDistance = length(WorldLightDir);
+WorldLightDir = WorldLightDir / fDistance;
+
+float3 H = normalize(WorldCameraDir - WorldLightDir);
+float3 epsilon = float3(1.0f,0.0f,0.0f);
+float3 tangent = normalize(cross(WorldNormal,epsilon));
+float3 bitangnet = normalize(cross(WorldNormal,tangent));
+float VdotN = dot(WorldCameraDir,WorldNormal);
+float LdotN = dot(-WorldLightDir,WorldNormal);
+float HdotN = dot(H,WorldNormal);
+float HdotL = dot(H,-WorldLightDir);
+float HdotT = dot(H,tangent);
+float HdotB = dot(H,bitangnet);
+float4 vDiffuse = 28.0f * Diffuse * LightDiffuse * (1.0f - Rs) * (1.0f - pow(1.0f - LdotN * 0.5f,5.0f)) * (1.0f - pow(1.0f - VdotN * 0.5f,5.0f)) / (23.0f * PI);
+float ps_num_exp = NU * HdotT * HdotT + NV * HdotB * HdotB;
+ps_num_exp /= (1.0f - HdotN * HdotN);
+float ps_num = sqrt((NU + 1) * (NV + 1));
+ps_num *= pow(saturate(HdotN) , ps_num_exp);
+float ps_den = 8.0f * PI * HdotL;
+ps_den *= max(LdotN,VdotN);
+float4 vSpecular = LightSpecular * Specular * (ps_num / ps_den) * (Rs + (1.0f - Rs) * pow(1.0f - HdotL , 5.0f));
+
+float fLightAttenuationDiv = saturate(1.0f - fDistance / Range);
+float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+float fLightIf = saturate((fSpotLightCos - cos(Phi* 0.5f)) / (cos(Theta* 0.5f) - cos(Phi * 0.5f)));
+float fLightEffect = pow(fLightIf,Falloff);
+
+return (vDiffuse + vSpecular) * fLightAttenuationDiv  * fLightEffect;
+
+}
+float PointLightVolumeShadow(PointLightType PointLight, float3 WorldPos, SamplerState  VolumeShadowSampler,Texture2D VolumeShadowTexture)
+{
+	float3 ProjectV = TransProjPos(WorldPos,PointLight.ShadowMatrix);
+	return VolumeShadowTexture.Sample(VolumeShadowSampler,ProjectV.xy).r;
+
+}
+float DirectionLightVolumeShadow(DirLightType DirLight, float3 WorldPos, SamplerState  VolumeShadowSampler,Texture2D VolumeShadowTexture)
+{
+	float3 ProjectV = TransProjPos(WorldPos,DirLight.ShadowMatrix[0]);
+	return VolumeShadowTexture.Sample(VolumeShadowSampler,ProjectV.xy).r;
+
+}
+#define CSMPCF 1
+
+float DirLightCSMShadow(DirLightType DirLight,float3 WorldPos,float3 ViewPos,float FarZ ,SamplerState ShadowSampler[3],Texture2D ShadowTexture[3])
+{
+
+	float CompareDistance[3];
+	CompareDistance[0] = 1000.0f;//FarZ * 0.15f;
+	CompareDistance[1] = 3500.0f;//FarZ * 0.45f;
+	CompareDistance[2] = FarZ;
+
+	float Shadow = 1.0f;
+	
+	[unroll]for(int i = 0 ; i < 3 ; i++)
+	{
+		if(ViewPos.z < CompareDistance[i])
+		{
+		
+			float4 NewPos = mul(float4(WorldPos,1),DirLight.ShadowMatrix[i]);
+	
+			float3 ProjPos =  (NewPos.xyz - float3(0.0f,0.0f,DirLight.LightParam.x)) / NewPos.w;
+			
+			float depth = clamp(ProjPos.z,0.0f,1.0f);
+#if CSMPCF > 0
+			Shadow = PCFShadow(ShadowSampler[i],ShadowTexture[i],DirLight.LightWorldDirection.w,ProjPos.xy,depth);
+#else
+			Shadow = FourShadow(ShadowSampler[i],ShadowTexture[i],DirLight.LightWorldDirection.w,ProjPos.xy,depth);
+#endif
+			
+			break;
+			
+		}
+
+	}
+
+	
+	return Shadow;
+	
+	
+	
+	
+	
+}
+float DirLightShadow(DirLightType DirLight,float3 WorldPos,SamplerState ShadowSampler,Texture2D ShadowTexture)
+{
+	float Shadow = 1.0f;
+	float4 NewPos = mul(float4(WorldPos,1),DirLight.ShadowMatrix[0]);
+	
+	float3 ProjPos =  (NewPos.xyz - float3(0.0f,0.0f,DirLight.LightParam.x)) / NewPos.w;
+	
+	float depth = clamp(ProjPos.z,0.0f,1.0f);
+#if CSMPCF > 0
+	Shadow = PCFShadow(ShadowSampler,ShadowTexture,DirLight.LightWorldDirection.w,ProjPos.xy,depth);
+#else
+	Shadow = FourShadow(ShadowSampler,ShadowTexture,DirLight.LightWorldDirection.w,ProjPos.xy,depth);
+#endif
+	
+	return Shadow;
+}
+float SpotLightShadow(SpotLightType SpotLight,float3 WorldPos,SamplerState ShadowSampler,Texture2D ShadowTexture)
+{
+	float Shadow = 1.0f;
+	float4 NewPos = mul(float4(WorldPos,1),SpotLight.ShadowMatrix);
+	
+	float3 ProjPos =  (NewPos.xyz - float3(0.0f,0.0f,SpotLight.LightParam.w)) / NewPos.w;
+	
+	float depth = clamp(ProjPos.z,0.0f,1.0f);
+#if CSMPCF > 0
+	Shadow = PCFShadow(ShadowSampler,ShadowTexture,SpotLight.LightWorldDirection.w,ProjPos.xy,depth);
+#else
+	Shadow = FourShadow(ShadowSampler,ShadowTexture,SpotLight.LightWorldDirection.w,ProjPos.xy,depth);
+#endif
+	
+	return Shadow;
+}
+float4 LightFunction(float4x4 WVP,float3 WorldPos,float4 LightFunParam,SamplerState LightFunSampler,Texture2D LightFunTexture)
+{
+	float4 NewPos = mul(float4(WorldPos,1),WVP);
+	float2 TexCoord = NewPos.xy / NewPos.w;
+	TexCoord = TexCoord * LightFunParam.xy + LightFunParam.zw;
+	return LightFunTexture.Sample(LightFunSampler,TexCoord); 
+}
+/* 球极坐标参数方程
+x=sin(α)·cos(β)
+z=sin(α)·sin(β)
+y=cos(α)*/
+float4 PointLightFunction(float3 LightPos, float3 WorldPos ,float4 LightFunParam,SamplerState LightFunSampler,Texture2D LightFunTexture)
+{
+	float3 Dir = normalize(WorldPos - LightPos);
+
+	float Alpha = 0.0f;
+	float Beta =  0.0f;
+
+	Alpha = acos(Dir.y);
+
+	float InvSinAlpha = 1.0f / sin(Alpha);
+	float Beta1 = acos(Dir.x * InvSinAlpha);
+	float Beta2 = asin(Dir.z * InvSinAlpha); 
+	Beta =  Beta2 < 0.0f ? ((Beta1 > PI_INV2) ? (PI2 + Beta2) : (PI - Beta2)) : Beta1;
+
+	float x = Beta * INV_PI2 ;
+	float y = Alpha * INV_PI;
+
+	return LightFunTexture.Sample(LightFunSampler,float2(x,y)); 
+
+}
+float4 SkyLight(float3 WorldNormal,float4 UpColor,float4 DownColor)
+{
+#if bLighted > 0
+	float t = dot(WorldNormal,float3(0.0f,1.0f,0.0f));
+	
+	float2 v = float2(0.5, 0.5f) + float2(0.5f, -0.5f) * t;
+	
+	return UpColor * v.x + DownColor * v.y;
+#else
+	return float4(0.0f,0.0f,0.0f,0.0f);
+#endif	
+}
+
+float EncodeReflect(float a , float b )
+{
+	float a1 = a * 99.0f;
+	float b1 = b * 99.0f;
+	
+	return a1 + b1 * 100.0f;
+}
+
+float DecodeReflect(out float a , out float b , in float value)
+{
+	float b1 = floor(value * 0.01);
+	float a1 = value - b1 * 100.0f;
+	
+	a = a1 / 99.0f;
+	b = b1 / 99.0f;
+}
+float Encode(float a , float b , float c , int x)
+{
+	float x1 = x - 1;
+	float a1 = a * x1;
+	float b1 = b * x1;
+	float c1 = c * x1;
+	
+	return a1 + b1 * x + c1 * x * x;
+
+}
+
+void Decode( out float a , out float b , out float c , int x , in float value)
+{
+	float c1 = floor(value / (x * x));
+	float b1 = floor((value - c1 * (x * x)) / x);
+	float a1 = value - c1 * (x * x) - b1 * x;
+	
+	float x1 = x - 1;
+	
+	a = a1 / x1;
+	b = b1 / x1;
+	c = c1 / x1;
+}
+

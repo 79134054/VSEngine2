@@ -1,0 +1,119 @@
+#include"Shader.txt"
+cbuffer CB : register( b0 )
+{
+row_major float4x4 ProjectMatrix;
+float FarZ;
+float2 InvRtWidth;
+}
+
+Texture2D SceneColoTexture;
+SamplerState  SceneColorSampler;
+Texture2D NormalDepthTexture;
+SamplerState  NormalDepthSampler;
+static const int MaxStep = 20;
+//#define USE_PROJECT_UV
+#ifdef USE_PROJECT_UV
+static const float DirStep = 0.05;
+#else
+static const float DirStep = 0.5f;
+#endif
+static const float FadeFact = 0.1;
+struct PS_INPUT
+{
+float4 Pos: SV_POSITION;
+float2 texCoord: TEXCOORD0;
+};
+// set SceneColorSampler border color 1.0f
+float4 PSMain(PS_INPUT Input) : SV_Target0
+{
+	
+	
+	float2 Project = float2(ProjectMatrix._m00,ProjectMatrix._m11);
+
+	float4 Result = NormalDepthTexture.Sample((NormalDepthSampler,Input.texCoord);
+
+	float ViewZ = Result.z * FarZ;
+
+	float2 ProjectXY = Input.texCoord * float2(2,-2) + float2(-1,1);
+
+	float3 ViewPos = float3(ViewZ * ProjectXY / Project,ViewZ);
+
+	float3 ViewDir = normalize(ViewPos);
+
+	float3 ViewNormal = RecodeNormal3(Result.xy);
+
+	float3 ViewReflect = reflect(ViewDir,ViewNormal);
+
+	
+	float Delt = ViewReflect.z - FadeFact;
+
+	float FaceViewFactor = Delt * rcp(1.0 - FadeFact);
+			
+	float3 CurViewPos = ViewPos + ViewReflect;
+	
+	float4 CurProjectPos = mul(float4(CurViewPos,1.0f),ProjectMatrix);
+	
+	CurProjectPos = CurProjectPos / CurProjectPos.w;
+	
+	float4 PojectPos = float4(ProjectXY, (ViewZ * ProjectMatrix._m22 + ProjectMatrix._m32) / ViewZ,1.0f);
+	
+	PojectPos = PojectPos / PojectPos.w;
+#ifdef USE_PROJECT_UV
+	float3 PojectReflect = (CurProjectPos.xyz - PojectPos.xyz);	
+#else
+	float3 PojectReflect = (CurProjectPos.xyz - PojectPos.xyz) * DirStep;
+#endif	
+
+	
+	
+	
+	float3 HitCoord = PojectPos.xyz;
+	
+#ifdef USE_PROJECT_UV	
+	float Length = length(PojectReflect.xy);
+	
+	PojectReflect = (PojectReflect / Length) * DirStep;
+#endif	 
+	
+	float4 HitColor = float4(0.0f,0.0f,0.0f,0.0f);
+
+	float CompareTolerance = ProjectMatrix._m32 / (PojectReflect.z  - ProjectMatrix._m22);
+	float lastdiff = 0.0f;
+	[unroll]
+	for(int i = 0 ; i < MaxStep ; i++)
+	{
+		if(Delt < 0.0f)
+		{
+			break;
+		}
+		HitCoord += PojectReflect;
+
+		float2 NewUV = 0.5 * (1 + HitCoord.xy * float2(1,-1) /*+ InvRtWidth.xy*/);
+
+		float SamplerViewZ = NormalDepthTexture.Sample((NormalDepthSampler,NewUV).z * FarZ;
+		
+		float NewViewZ = ProjectMatrix._m32 / (HitCoord.z  - ProjectMatrix._m22);
+		
+		float diff = SamplerViewZ - NewViewZ;		
+		
+		//if(diff < 0.01f && abs(diff) < CompareTolerance)
+		if(abs( diff + CompareTolerance ) < CompareTolerance)
+		{
+			
+			float TimeLerp = saturate( lastdiff / (lastdiff - diff) );
+			
+			float3 HitPos = HitCoord - PojectReflect + TimeLerp * PojectReflect;
+		
+			float2 HitUV = 0.5 * (1 + HitPos.xy * float2(1,-1) /*+ InvRtWidth.xy*/);
+			
+			//screen side fade out
+			float ScreenEdgeFact = saturate(distance(HitUV , float2(0.5, 0.5)) * 2.0);
+			
+			HitColor = NormalDepthTexture.Sample((SceneColorSampler,HitUV) * (1.0f - max(ScreenEdgeFact * ScreenEdgeFact,1.0f - FaceViewFactor));
+			break;
+		}
+		lastdiff = diff;	
+	}
+	
+	return HitColor;
+}

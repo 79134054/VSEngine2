@@ -1,0 +1,9 @@
+#include"Shader.txt"
+sampler PostInputTexture;
+float4 PSMain(float2 texCoord: TEXCOORD0) : COLOR
+{
+
+	float4 OutputColor = tex2D(PostInputTexture, texCoord);
+	OutputColor.rgb = GreaterZeroPow(OutputColor.rgb,0.454545);
+	return OutputColor;
+}

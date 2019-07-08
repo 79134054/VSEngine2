@@ -1,0 +1,9 @@
+//first bone num
+void ComputeBoneVector(in uint4 Index , in float4 Weight, in float4 BoneVector[%d],out float4 v1,out float4 v2,out float4 v3)
+{
+	int4 IndexS = Index * 3;
+	v1 = BoneVector[IndexS.x] * Weight.x + BoneVector[IndexS.y ] * Weight.y + BoneVector[IndexS.z] * Weight.z + BoneVector[IndexS.w] * Weight.w;
+	v2 = BoneVector[IndexS.x + 1] * Weight.x + BoneVector[IndexS.y + 1] * Weight.y + BoneVector[IndexS.z + 1] * Weight.z + BoneVector[IndexS.w + 1] * Weight.w;
+	v3 = BoneVector[IndexS.x + 2] * Weight.x + BoneVector[IndexS.y + 2] * Weight.y + BoneVector[IndexS.z + 2] * Weight.z + BoneVector[IndexS.w + 2] * Weight.w;
+
+}

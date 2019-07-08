@@ -1,0 +1,80 @@
+#include"Shader.txt"
+row_major float4x4 ProjectMatrix;
+float FarZ;
+float2 InvRtWidth;
+sampler2D  SceneColorSampler;
+sampler2D  NormalDepthSampler;
+static const int MaxStep = 10;
+static const float DirStep = 2;
+static const float FadeFact = 0.1;
+// set SceneColorSampler border color 1.0f
+float4 PSMain(float2 texCoord: TEXCOORD0) : COLOR
+{
+	
+	
+	float2 Project = float2(ProjectMatrix._m00,ProjectMatrix._m11);
+
+	float4 Result = tex2D(NormalDepthSampler,texCoord);
+
+	float ViewZ = Result.z * FarZ;
+
+	float2 ProjectXY = texCoord * float2(2,-2) + float2(-1,1);
+
+	float3 ViewPos = float3(ViewZ * ProjectXY / Project,ViewZ);
+
+	float3 ViewDir = normalize(ViewPos);
+
+	float3 ViewNormal = RecodeNormal3(Result.xy);
+
+	float3 ViewReflect = normalize(reflect(ViewDir,ViewNormal));
+
+	float Delt = ViewReflect.z - FadeFact;
+
+	float FaceViewFactor = Delt * rcp(1.0 - FadeFact);
+	
+	ViewReflect *= DirStep;
+	
+	float3 HitCoord = ViewPos;
+	float4 HitColor = float4(0.0f,0.0f,0.0f,0.0f);
+	
+	float CompareTolerance = ViewReflect.z * 0.5f;
+	float lastdiff = 0.0f;
+	[unroll]	
+	for(int i = 0 ; i < MaxStep ; i++)
+	{
+		if(Delt < 0.0f)
+		{
+			break;
+		}
+		HitCoord += ViewReflect;
+
+		float4 Temp = mul(float4(HitCoord,1.0f),ProjectMatrix);
+
+		Temp /= Temp.w;
+
+		float2 NewUV = 0.5 * (1 + Temp.xy * float2(1,-1) /*+ InvRtWidth.xy*/);
+
+		float SamplerZ = tex2D(NormalDepthSampler,NewUV).z * FarZ;
+		float diff = SamplerZ - HitCoord.z;
+		//if(diff < 0.01f && abs(diff) < CompareTolerance)
+		if(abs( diff + CompareTolerance ) < CompareTolerance)
+		{
+			float TimeLerp = saturate( lastdiff / (lastdiff - diff) );
+			
+			float3 HitPos = HitCoord - ViewReflect + TimeLerp * ViewReflect;
+		
+			float4 HitPosTemp = mul(float4(HitPos,1.0f),ProjectMatrix);
+
+			HitPosTemp /= HitPosTemp.w;
+		
+			float2 HitUV = 0.5 * (1 + HitPosTemp.xy * float2(1,-1) /*+ InvRtWidth.xy*/);
+			
+			float ScreenEdgeFact = saturate(distance(HitUV , float2(0.5, 0.5)) * 2.0);
+			HitColor = tex2D(SceneColorSampler,HitUV) * (1.0f - max(ScreenEdgeFact * ScreenEdgeFact,1.0f - FaceViewFactor));
+			break;
+		}
+		lastdiff = diff;	
+	}
+	
+	return HitColor;
+}

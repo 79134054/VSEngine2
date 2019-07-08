@@ -1,0 +1,19 @@
+float4 FontColor;
+sampler PostInputTexture;
+struct PS_OUTPUT 
+{ 
+	float4 Color0:COLOR0;
+};
+struct PS_INPUT
+{
+	float2 texCoord: TEXCOORD0;
+	float4 Color:TEXCOORD1;
+};
+PS_OUTPUT PSMain(PS_INPUT Input)
+{
+	 PS_OUTPUT Out = (PS_OUTPUT) 0;	
+	float4 col = tex2D(PostInputTexture, Input.texCoord);
+	clip(0.5f - col.r);
+	Out.Color0 = Input.Color * (1.0f - col);
+	return Out;
+};

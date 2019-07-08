@@ -1,0 +1,74 @@
+#include"Shader.txt"
+cbuffer CB : register( b0 )
+{
+row_major float4x4 ProjectMatrix;
+float FarZ;
+float2 InvRtWidth;
+}
+Texture2D SceneColoTexture;
+SamplerState  SceneColorSampler;
+Texture2D NormalDepthTexture;
+SamplerState  NormalDepthSampler;
+static const int MaxStep = 10;
+static const float DirStep = 1;
+static const float FadeFact = 0.3;
+struct PS_INPUT
+{
+float4 Pos: SV_POSITION;
+float2 texCoord: TEXCOORD0;
+};
+// set SceneColorSampler border color 1.0f
+float4 PSMain(PS_INPUT Input) : SV_Target0
+{
+	
+	
+	float2 Project = float2(ProjectMatrix._m00,ProjectMatrix._m11);
+
+	float4 Result = NormalDepthTexture.Sample(NormalDepthSampler,Input.texCoord);
+
+	float ViewZ = Result.z * FarZ;
+
+	float2 ProjectXY = Input.texCoord * float2(2,-2) + float2(-1,1);
+
+	float3 ViewPos = float3(ViewZ * ProjectXY / Project,ViewZ);
+
+	float3 ViewDir = normalize(ViewPos);
+
+	float3 ViewNormal = RecodeNormal3(Result.xy);
+
+	float3 ViewReflect = normalize(reflect(ViewDir,ViewNormal));
+
+	float Delt = ViewReflect.z - FadeFact;
+
+	float FaceViewFactor = Delt * rcp(1.0 - FadeFact);
+	
+	float3 HitCoord = ViewPos;
+	float4 HitColor = float4(0.0f,0.0f,0.0f,0.0f);
+	
+	[unroll]	
+	for(int i = 0 ; i < MaxStep ; i++)
+	{
+		if(Delt < 0.0f)
+		{
+			break;
+		}
+		HitCoord += DirStep * ViewReflect;
+
+		float4 Temp = mul(float4(HitCoord,1.0f),ProjectMatrix);
+
+		Temp /= Temp.w;
+
+		float2 NewUV = 0.5 * (1 + Temp.xy * float2(1,-1) + InvRtWidth.xy);
+
+		float SamplerZ = NormalDepthTexture.Sample(NormalDepthSampler,NewUV).z * FarZ;
+		float diff = HitCoord.z - SamplerZ;
+		if(diff > 0.0f)
+		{
+			float ScreenEdgeFact = saturate(distance(NewUV , float2(0.5, 0.5)) * 2.0);
+			HitColor = SceneColoTexture.Sample(SceneColorSampler,NewUV) * (1.0f - max(ScreenEdgeFact * ScreenEdgeFact,1.0f - FaceViewFactor));
+			break;
+		}	
+	}
+	
+	return HitColor;
+}

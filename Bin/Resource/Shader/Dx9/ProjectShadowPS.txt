@@ -1,0 +1,83 @@
+#include"Shader.txt"
+row_major float4x4 ShadowMatrix;
+row_major float4x4 InvView;
+float2 Project;
+float FarZ;
+float ZBias;
+float2 NormalDepthInvRtWidth;
+float ShadowRtWidth;
+float4 ProjectShadowColor;
+float ProjectShadowFallOff;
+#if LIGHT_TYPE > 0
+float3 LightWorldPos;
+float LightRange;
+#endif
+#if LIGHT_TYPE == 2
+float3 LightWorldDirection;
+float Falloff;
+float Theta;
+float Phi;
+#endif
+sampler2D  ShadowTexture;
+sampler2D  NormalDepthTexture;
+struct PS_INPUT 
+{ 
+	float4 ProjectPos:TEXCOORD0;
+};
+struct PS_OUTPUT 
+{ 
+	float4 Color0:COLOR0;
+};
+PS_OUTPUT PSMain(PS_INPUT ps_Input)
+{
+	PS_OUTPUT Out = (PS_OUTPUT) 0;
+
+	float2 Tex = ps_Input.ProjectPos.xy / ps_Input.ProjectPos.w;
+	
+	float2 ProjetXY = Tex;
+	
+	Tex = 0.5 * (1 + Tex * float2(1,-1) + NormalDepthInvRtWidth.xy);
+	
+	float ViewZ = tex2D(NormalDepthTexture,Tex).z;
+	
+	
+	
+	float Z = ViewZ * FarZ;
+
+	float4 ViewPos = float4(Z * ProjetXY / Project,Z,1.0f);
+	
+	float4 WorldPos = mul(ViewPos,InvView);
+	
+	
+	float Shadow = 1.0f;
+	
+	float4 NewPos = mul(WorldPos,ShadowMatrix);
+	
+	float3 ProjPos =  (NewPos.xyz - float3(0.0f,0.0f,ZBias)) / NewPos.w;
+	
+	float depth = clamp(ProjPos.z,0.0f,1.0f);
+#if CSMPCF > 0
+	Shadow = PCFShadow(ShadowTexture,ShadowRtWidth,ProjPos.xy,depth);
+#else
+	Shadow = FourShadow(ShadowTexture,ShadowRtWidth,ProjPos.xy,depth);
+#endif
+	float Alpha = ProjectShadowFallOff;
+#if LIGHT_TYPE == 1	
+	float fDistance = length(LightWorldPos - WorldPos.xyz);
+	Alpha *= saturate(1.0f - fDistance / LightRange);
+#elif LIGHT_TYPE == 2
+	float3 WorldLightDir = WorldPos.xyz - LightWorldPos;
+	float  fDistance = length(WorldLightDir);
+	WorldLightDir = WorldLightDir / fDistance;
+	float fLightAttenuationDiv = saturate(1.0f - fDistance / LightRange);
+	float fSpotLightCos = dot(WorldLightDir,LightWorldDirection);
+	float fLightIf = saturate((fSpotLightCos - cos(Phi * 0.5f)) / (cos(Theta * 0.5f) - cos(Phi  * 0.5f)));
+	float fLightEffect = pow(fLightIf,Falloff);
+	Alpha *=  fLightAttenuationDiv  * fLightEffect;
+#endif
+	Alpha = saturate(Alpha);
+	Out.Color0 = (ProjectShadowColor * (1.0f - Shadow) + Shadow) * Alpha + (1.0f - Alpha);
+	Out.Color0.a = 1.0f;
+	return Out;
+
+}

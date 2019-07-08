@@ -1,0 +1,15 @@
+#include"Shader.txt"
+Texture2D PostInputTexture;
+SamplerState PostInputSampler;
+struct PS_INPUT
+{
+float4 Pos: SV_POSITION;
+float2 texCoord: TEXCOORD0;
+};
+float4 PSMain(PS_INPUT Input) : SV_Target0
+{
+
+	float4 OutputColor = PostInputTexture.Sample( PostInputSampler, Input.texCoord);
+	OutputColor.rgb = GreaterZeroPow(OutputColor.rgb,0.454545);
+	return OutputColor;
+}

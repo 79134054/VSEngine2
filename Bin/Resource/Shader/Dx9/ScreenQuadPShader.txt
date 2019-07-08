@@ -1,0 +1,7 @@
+sampler PostInputTexture;
+float4 PSMain(float2 texCoord: TEXCOORD0) : COLOR
+{
+// Read the source color
+float4 col = tex2D(PostInputTexture, texCoord);
+return col;
+}
