@@ -244,7 +244,9 @@ namespace VSEngine2
 			printf("Error: Import Scene\n");
 			return false;
 		}
-		
+		FbxAxisSystem CurSystem = m_pFbxScene->GetGlobalSettings().GetAxisSystem();
+		FbxAxisSystem VSEngineSystem(FbxAxisSystem::eZAxis, (FbxAxisSystem::EFrontVector)(-FbxAxisSystem::eParityOdd), FbxAxisSystem::eRightHanded);
+		VSEngineSystem.ConvertScene(m_pFbxScene);
 		bool bIsError = false;
 		if (m_CurExportType == ET_STATIC_MESH)
 		{
