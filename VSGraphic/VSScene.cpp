@@ -165,7 +165,7 @@ void VSScene::AddObject(VSNode * pObject)
 void VSScene::DeleteObject(VSNode *pObject)
 {
 	
-	if (!pObject)
+	if (pObject)
 	{
 		
 		for (unsigned int i = 0; i < m_ObjectNodes.GetNum(); i++)

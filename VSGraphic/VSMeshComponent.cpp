@@ -56,6 +56,11 @@ void VSMeshComponent::UpdateNodeAll(double dAppTime)
 	if (m_pNode)
 		m_pNode->UpdateAll(dAppTime);
 
+	for (unsigned int i = 0; i < m_pChild.GetNum(); i++)
+	{
+		if (m_pChild[i])
+			m_pChild[i]->UpdateNodeAll(dAppTime);
+	}
 
 	UpdateLightState(dAppTime);
 
@@ -86,7 +91,16 @@ void VSMeshComponent::ComputeNodeVisibleSet(VSCuller & Culler, bool bNoCull, dou
 
 		
 	}
+	for (unsigned int i = 0; i < m_pChild.GetNum(); i++)
+	{
+		if (m_pChild[i])
+		{
 
+			m_pChild[i]->ComputeVisibleSet(Culler, bNoCull, dAppTime);
+
+		}
+
+	}
 }
 
 void VSMeshComponent::SetIsVisibleUpdate(bool bIsVisibleUpdate)
